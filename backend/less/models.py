@@ -174,3 +174,69 @@ class WorkSession(Base):
     candidate_count: Mapped[int | None]
     selected_count: Mapped[int | None]
     note: Mapped[str | None] = mapped_column(Text)
+
+
+class EditorialEvent(Base):
+    __tablename__ = "editorial_events"
+    id: Mapped[str] = mapped_column(primary_key=True, default=uid)
+    title: Mapped[str] = mapped_column(Text)
+    subject: Mapped[str]
+    action: Mapped[str]
+    object: Mapped[str] = mapped_column(Text)
+    happened_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    event_version: Mapped[str | None]
+    scope: Mapped[str] = mapped_column(Text)
+    revision: Mapped[int] = mapped_column(default=1)
+    value_status: Mapped[str] = mapped_column(default="pending")
+    quality_status: Mapped[str] = mapped_column(default="pending")
+    decision: Mapped[str] = mapped_column(default="pending")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class EventMember(Base):
+    __tablename__ = "event_members"
+    __table_args__ = (UniqueConstraint("event_id", "version_id"),)
+    id: Mapped[str] = mapped_column(primary_key=True, default=uid)
+    event_id: Mapped[str] = mapped_column(ForeignKey("editorial_events.id"))
+    version_id: Mapped[str] = mapped_column(ForeignKey("item_versions.id"))
+    paragraph_ids: Mapped[list] = mapped_column(JSONB)
+    active: Mapped[bool] = mapped_column(default=True)
+
+
+class EventClaim(Base):
+    __tablename__ = "event_claims"
+    id: Mapped[str] = mapped_column(primary_key=True, default=uid)
+    event_id: Mapped[str] = mapped_column(ForeignKey("editorial_events.id"))
+    text: Mapped[str] = mapped_column(Text)
+    kind: Mapped[str]
+    critical: Mapped[bool] = mapped_column(default=True)
+
+
+class Evidence(Base):
+    __tablename__ = "evidence"
+    id: Mapped[str] = mapped_column(primary_key=True, default=uid)
+    claim_id: Mapped[str] = mapped_column(ForeignKey("event_claims.id"))
+    version_id: Mapped[str] = mapped_column(ForeignKey("item_versions.id"))
+    paragraph_ids: Mapped[list] = mapped_column(JSONB)
+    quote: Mapped[str] = mapped_column(Text)
+    direction: Mapped[str]
+    rationale: Mapped[str] = mapped_column(Text)
+    source_root: Mapped[str] = mapped_column(Text)
+    limitations: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(default="unchecked")
+    checked_by: Mapped[str | None]
+    checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class EditorialReview(Base):
+    __tablename__ = "editorial_reviews"
+    id: Mapped[str] = mapped_column(primary_key=True, default=uid)
+    event_id: Mapped[str] = mapped_column(ForeignKey("editorial_events.id"))
+    revision: Mapped[int]
+    gate: Mapped[str]
+    status: Mapped[str]
+    actor: Mapped[str]
+    detail: Mapped[dict] = mapped_column(JSONB)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)

@@ -714,6 +714,47 @@ footer {
 .validation-desk summary {
   cursor: pointer;
 }
+.inbox-events {
+  margin: 24px 0;
+}
+.event-editor {
+  margin-top: 25px;
+}
+.event-editor > p {
+  overflow-wrap: anywhere;
+}
+.editorial-gates {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  align-items: start;
+}
+.evidence-card {
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid #dce4d2;
+  border-radius: 5px;
+  background: #fcfcf8;
+}
+.evidence-card blockquote {
+  margin: 15px 0;
+  padding-left: 15px;
+  border-left: 2px solid #a5b995;
+  overflow-wrap: anywhere;
+}
+.paragraph-picker {
+  max-height: 330px;
+  overflow: auto;
+}
+.paragraph-picker span {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+@media (max-width: 760px) {
+  .editorial-gates {
+    grid-template-columns: 1fr;
+  }
+}
 .validation-identity {
   border-top: 1px solid #dce4d2;
   padding-top: 25px;

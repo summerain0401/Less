@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { Check, Detail, Item, Overview, Run, Source } from "./types";
 import { ValidationDesk } from "./ValidationDesk";
+import { EditorialInbox } from "./EditorialInbox";
 import "./style.css";
 
 const time = (value: string | null) =>
@@ -131,6 +132,7 @@ function App() {
             ["sources", "来源管理", "02"],
             ["activity", "运行记录", "03"],
             ["validation", "验收台", "04"],
+            ["editorial", "编辑收件箱", "05"],
           ].map(([id, label, n]) => (
             <button
               key={id}
@@ -149,7 +151,7 @@ function App() {
         <div className="sidebar-footer">
           <span className="dot" /> 本地工作台
           <br />
-          <small>PHASE 1 / WEEK 1</small>
+          <small>PHASE 1 / WEEK 1–2</small>
         </div>
       </aside>
       <main>
@@ -163,7 +165,9 @@ function App() {
                   ? "好的判断，始于好的来源"
                   : tab === "validation"
                     ? "让每一项进展都有依据"
-                    : "每一步都有记录"}
+                    : tab === "editorial"
+                      ? "把材料变成可核查的事件"
+                      : "每一步都有记录"}
             </h1>
             <p>
               {tab === "items"
@@ -172,10 +176,14 @@ function App() {
                   ? "围绕 AI Coding 与 Agents，持续校准我们的观察范围。"
                   : tab === "validation"
                     ? "从跨来源抽查到人工工作计时，逐项检验第一周的运行质量。"
-                    : "区分无更新、失败与漏执行，保留真实的运行过程。"}
+                    : tab === "editorial"
+                      ? "写清楚价值理由，逐条核对证据，再作出编辑决定。"
+                      : "区分无更新、失败与漏执行，保留真实的运行过程。"}
             </p>
           </div>
-          <span className="phase">内部 · Week 1</span>
+          <span className="phase">
+            内部 · {tab === "editorial" ? "Week 2" : "Week 1"}
+          </span>
         </header>
         {error && (
           <div role="alert" className="banner error">
@@ -221,6 +229,7 @@ function App() {
           ))}
         </section>
         {tab === "validation" && <ValidationDesk sources={sources} />}
+        {tab === "editorial" && <EditorialInbox items={items} />}
         {tab === "items" && !selected && (
           <section>
             <div className="section-heading">

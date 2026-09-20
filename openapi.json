@@ -357,7 +357,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ReviewView"
+                  "$ref": "#/components/schemas/less__api__ReviewView"
                 }
               }
             }
@@ -948,6 +948,648 @@
           }
         }
       }
+    },
+    "/api/editorial/events": {
+      "get": {
+        "tags": [
+          "Editorial Inbox"
+        ],
+        "summary": "Events",
+        "operationId": "events_api_editorial_events_get",
+        "parameters": [
+          {
+            "name": "decision",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "pending",
+                    "selected",
+                    "deferred",
+                    "rejected",
+                    "evidence_only",
+                    "observe"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Decision"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InboxView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Editorial Inbox"
+        ],
+        "summary": "Create Event",
+        "operationId": "create_event_api_editorial_events_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/editorial/events/{event_id}": {
+      "get": {
+        "tags": [
+          "Editorial Inbox"
+        ],
+        "summary": "Event Detail",
+        "operationId": "event_detail_api_editorial_events__event_id__get",
+        "parameters": [
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Event Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Editorial Inbox"
+        ],
+        "summary": "Edit Event",
+        "operationId": "edit_event_api_editorial_events__event_id__patch",
+        "parameters": [
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Event Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/editorial/events/{event_id}/members": {
+      "post": {
+        "tags": [
+          "Editorial Inbox"
+        ],
+        "summary": "Add Member",
+        "operationId": "add_member_api_editorial_events__event_id__members_post",
+        "parameters": [
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Event Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/editorial/events/{event_id}/members/{member_id}/unlink": {
+      "post": {
+        "tags": [
+          "Editorial Inbox"
+        ],
+        "summary": "Remove Member",
+        "operationId": "remove_member_api_editorial_events__event_id__members__member_id__unlink_post",
+        "parameters": [
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Event Id"
+            }
+          },
+          {
+            "name": "member_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Member Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Mutation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/editorial/events/{event_id}/claims": {
+      "post": {
+        "tags": [
+          "Editorial Inbox"
+        ],
+        "summary": "Add Claim",
+        "operationId": "add_claim_api_editorial_events__event_id__claims_post",
+        "parameters": [
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Event Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClaimInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClaimView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/editorial/events/{event_id}/evidence": {
+      "post": {
+        "tags": [
+          "Editorial Inbox"
+        ],
+        "summary": "Add Evidence",
+        "operationId": "add_evidence_api_editorial_events__event_id__evidence_post",
+        "parameters": [
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Event Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvidenceInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/editorial/events/{event_id}/evidence/{evidence_id}/review": {
+      "post": {
+        "tags": [
+          "Editorial Inbox"
+        ],
+        "summary": "Check Evidence",
+        "operationId": "check_evidence_api_editorial_events__event_id__evidence__evidence_id__review_post",
+        "parameters": [
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Event Id"
+            }
+          },
+          {
+            "name": "evidence_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Evidence Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvidenceReview"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/editorial/events/{event_id}/value": {
+      "post": {
+        "tags": [
+          "Editorial Inbox"
+        ],
+        "summary": "Check Value",
+        "operationId": "check_value_api_editorial_events__event_id__value_post",
+        "parameters": [
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Event Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValueReview"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/less__editorial_api__ReviewView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/editorial/events/{event_id}/quality": {
+      "post": {
+        "tags": [
+          "Editorial Inbox"
+        ],
+        "summary": "Check Quality",
+        "operationId": "check_quality_api_editorial_events__event_id__quality_post",
+        "parameters": [
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Event Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QualityReview"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/less__editorial_api__ReviewView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/editorial/events/{event_id}/decision": {
+      "post": {
+        "tags": [
+          "Editorial Inbox"
+        ],
+        "summary": "Make Decision",
+        "operationId": "make_decision_api_editorial_events__event_id__decision_post",
+        "parameters": [
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Event Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/less__editorial_api__ReviewView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1308,6 +1950,85 @@
         ],
         "title": "Claim"
       },
+      "ClaimInput": {
+        "properties": {
+          "actor": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Actor"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Revision"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Reason"
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Text"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "fact_candidate",
+              "reported_claim",
+              "interpretation"
+            ],
+            "title": "Kind"
+          },
+          "critical": {
+            "type": "boolean",
+            "title": "Critical",
+            "default": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "actor",
+          "revision",
+          "reason",
+          "text",
+          "kind"
+        ],
+        "title": "ClaimInput"
+      },
+      "ClaimView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "critical": {
+            "type": "boolean",
+            "title": "Critical"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "text",
+          "kind",
+          "critical"
+        ],
+        "title": "ClaimView"
+      },
       "CountsView": {
         "properties": {
           "sources": {
@@ -1514,6 +2235,47 @@
         ],
         "title": "DailyReportView"
       },
+      "DecisionInput": {
+        "properties": {
+          "actor": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Actor"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Revision"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Reason"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "selected",
+              "deferred",
+              "rejected",
+              "evidence_only",
+              "observe"
+            ],
+            "title": "Status"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "actor",
+          "revision",
+          "reason",
+          "status"
+        ],
+        "title": "DecisionInput"
+      },
       "DetailView": {
         "properties": {
           "version": {
@@ -1531,7 +2293,7 @@
           },
           "reviews": {
             "items": {
-              "$ref": "#/components/schemas/ReviewView"
+              "$ref": "#/components/schemas/less__api__ReviewView"
             },
             "type": "array",
             "title": "Reviews"
@@ -1581,6 +2343,543 @@
           "paragraph_ids"
         ],
         "title": "Entity"
+      },
+      "EventDetail": {
+        "properties": {
+          "event": {
+            "$ref": "#/components/schemas/EventView"
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/MemberView"
+            },
+            "type": "array",
+            "title": "Members"
+          },
+          "claims": {
+            "items": {
+              "$ref": "#/components/schemas/ClaimView"
+            },
+            "type": "array",
+            "title": "Claims"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceView"
+            },
+            "type": "array",
+            "title": "Evidence"
+          },
+          "reviews": {
+            "items": {
+              "$ref": "#/components/schemas/less__editorial_api__ReviewView"
+            },
+            "type": "array",
+            "title": "Reviews"
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/HistoryView"
+            },
+            "type": "array",
+            "title": "History"
+          },
+          "verified_source_roots": {
+            "type": "integer",
+            "title": "Verified Source Roots"
+          }
+        },
+        "type": "object",
+        "required": [
+          "event",
+          "members",
+          "claims",
+          "evidence",
+          "reviews",
+          "history",
+          "verified_source_roots"
+        ],
+        "title": "EventDetail"
+      },
+      "EventInput": {
+        "properties": {
+          "actor": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Actor"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "subject": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Subject"
+          },
+          "action": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Action"
+          },
+          "object": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Object"
+          },
+          "happened_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Happened At"
+          },
+          "event_version": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Version"
+          },
+          "scope": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Scope"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "actor",
+          "title",
+          "subject",
+          "action",
+          "object",
+          "scope"
+        ],
+        "title": "EventInput"
+      },
+      "EventUpdate": {
+        "properties": {
+          "actor": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Actor"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Revision"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Reason"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "subject": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Subject"
+          },
+          "action": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Action"
+          },
+          "object": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Object"
+          },
+          "happened_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Happened At"
+          },
+          "event_version": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Version"
+          },
+          "scope": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Scope"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "actor",
+          "revision",
+          "reason",
+          "title",
+          "subject",
+          "action",
+          "object",
+          "scope"
+        ],
+        "title": "EventUpdate"
+      },
+      "EventView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "subject": {
+            "type": "string",
+            "title": "Subject"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "object": {
+            "type": "string",
+            "title": "Object"
+          },
+          "happened_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Happened At"
+          },
+          "event_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Version"
+          },
+          "scope": {
+            "type": "string",
+            "title": "Scope"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "value_status": {
+            "type": "string",
+            "title": "Value Status"
+          },
+          "quality_status": {
+            "type": "string",
+            "title": "Quality Status"
+          },
+          "decision": {
+            "type": "string",
+            "title": "Decision"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "subject",
+          "action",
+          "object",
+          "happened_at",
+          "event_version",
+          "scope",
+          "revision",
+          "value_status",
+          "quality_status",
+          "decision",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "EventView"
+      },
+      "EvidenceInput": {
+        "properties": {
+          "actor": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Actor"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Revision"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Reason"
+          },
+          "claim_id": {
+            "type": "string",
+            "title": "Claim Id"
+          },
+          "version_id": {
+            "type": "string",
+            "title": "Version Id"
+          },
+          "paragraph_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Paragraph Ids"
+          },
+          "quote": {
+            "type": "string",
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Quote"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "supporting",
+              "counter",
+              "context"
+            ],
+            "title": "Direction"
+          },
+          "rationale": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Rationale"
+          },
+          "source_root": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Source Root"
+          },
+          "limitations": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Limitations"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "actor",
+          "revision",
+          "reason",
+          "claim_id",
+          "version_id",
+          "paragraph_ids",
+          "quote",
+          "direction",
+          "rationale",
+          "source_root",
+          "limitations"
+        ],
+        "title": "EvidenceInput"
+      },
+      "EvidenceReview": {
+        "properties": {
+          "actor": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Actor"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Revision"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Reason"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "verified",
+              "rejected",
+              "needs_review"
+            ],
+            "title": "Status"
+          },
+          "original_checked": {
+            "type": "boolean",
+            "title": "Original Checked"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "actor",
+          "revision",
+          "reason",
+          "status",
+          "original_checked"
+        ],
+        "title": "EvidenceReview"
+      },
+      "EvidenceView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "claim_id": {
+            "type": "string",
+            "title": "Claim Id"
+          },
+          "version_id": {
+            "type": "string",
+            "title": "Version Id"
+          },
+          "paragraph_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Paragraph Ids"
+          },
+          "quote": {
+            "type": "string",
+            "title": "Quote"
+          },
+          "direction": {
+            "type": "string",
+            "title": "Direction"
+          },
+          "rationale": {
+            "type": "string",
+            "title": "Rationale"
+          },
+          "source_root": {
+            "type": "string",
+            "title": "Source Root"
+          },
+          "limitations": {
+            "type": "string",
+            "title": "Limitations"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "checked_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checked By"
+          },
+          "checked_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checked At"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "claim_id",
+          "version_id",
+          "paragraph_ids",
+          "quote",
+          "direction",
+          "rationale",
+          "source_root",
+          "limitations",
+          "status",
+          "checked_by",
+          "checked_at",
+          "created_at"
+        ],
+        "title": "EvidenceView"
       },
       "FieldInput": {
         "properties": {
@@ -1755,6 +3054,72 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "HistoryView": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "actor": {
+            "type": "string",
+            "title": "Actor"
+          },
+          "detail": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Detail"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "action",
+          "actor",
+          "detail",
+          "created_at"
+        ],
+        "title": "HistoryView"
+      },
+      "InboxView": {
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/EventView"
+            },
+            "type": "array",
+            "title": "Events"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "events",
+          "total",
+          "offset",
+          "limit"
+        ],
+        "title": "InboxView"
+      },
       "ItemIdentityView": {
         "properties": {
           "id": {
@@ -1810,6 +3175,146 @@
           "version"
         ],
         "title": "ItemView"
+      },
+      "MemberInput": {
+        "properties": {
+          "actor": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Actor"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Revision"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Reason"
+          },
+          "version_id": {
+            "type": "string",
+            "title": "Version Id"
+          },
+          "paragraph_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Paragraph Ids"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "actor",
+          "revision",
+          "reason",
+          "version_id",
+          "paragraph_ids"
+        ],
+        "title": "MemberInput"
+      },
+      "MemberView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "version_id": {
+            "type": "string",
+            "title": "Version Id"
+          },
+          "paragraph_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Paragraph Ids"
+          },
+          "active": {
+            "type": "boolean",
+            "title": "Active"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "source_name": {
+            "type": "string",
+            "title": "Source Name"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "paragraphs": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Paragraphs"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "version_id",
+          "paragraph_ids",
+          "active",
+          "title",
+          "source_name",
+          "url",
+          "published_at",
+          "paragraphs"
+        ],
+        "title": "MemberView"
+      },
+      "Mutation": {
+        "properties": {
+          "actor": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Actor"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Revision"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "actor",
+          "revision",
+          "reason"
+        ],
+        "title": "Mutation"
       },
       "NormalizeRequest": {
         "properties": {
@@ -1974,6 +3479,60 @@
         ],
         "title": "PrepareInput"
       },
+      "QualityReview": {
+        "properties": {
+          "actor": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Actor"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Revision"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Reason"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "passed",
+              "pending",
+              "rejected"
+            ],
+            "title": "Status"
+          },
+          "gaps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Gaps"
+          },
+          "conflict_resolutions": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Conflict Resolutions"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "actor",
+          "revision",
+          "reason",
+          "status",
+          "gaps"
+        ],
+        "title": "QualityReview"
+      },
       "QualityView": {
         "properties": {
           "reviewed_samples": {
@@ -2055,50 +3614,6 @@
           "note"
         ],
         "title": "ReviewRequest"
-      },
-      "ReviewView": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "title": "Id"
-          },
-          "version_id": {
-            "type": "string",
-            "title": "Version Id"
-          },
-          "run_id": {
-            "type": "string",
-            "title": "Run Id"
-          },
-          "reviewer": {
-            "type": "string",
-            "title": "Reviewer"
-          },
-          "decision": {
-            "type": "string",
-            "title": "Decision"
-          },
-          "note": {
-            "type": "string",
-            "title": "Note"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "version_id",
-          "run_id",
-          "reviewer",
-          "decision",
-          "note",
-          "created_at"
-        ],
-        "title": "ReviewView"
       },
       "RunMetadata": {
         "properties": {
@@ -2775,6 +4290,67 @@
         ],
         "title": "ValidationError"
       },
+      "ValueReview": {
+        "properties": {
+          "actor": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Actor"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Revision"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Reason"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "passed",
+              "pending",
+              "rejected"
+            ],
+            "title": "Status"
+          },
+          "important": {
+            "type": "boolean",
+            "title": "Important"
+          },
+          "useful": {
+            "type": "boolean",
+            "title": "Useful"
+          },
+          "important_reason": {
+            "type": "string",
+            "maxLength": 5000,
+            "title": "Important Reason",
+            "default": ""
+          },
+          "useful_reason": {
+            "type": "string",
+            "maxLength": 5000,
+            "title": "Useful Reason",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "actor",
+          "revision",
+          "reason",
+          "status",
+          "important",
+          "useful"
+        ],
+        "title": "ValueReview"
+      },
       "VersionView": {
         "properties": {
           "id": {
@@ -2892,6 +4468,95 @@
           "end"
         ],
         "title": "ParagraphView"
+      },
+      "less__api__ReviewView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "version_id": {
+            "type": "string",
+            "title": "Version Id"
+          },
+          "run_id": {
+            "type": "string",
+            "title": "Run Id"
+          },
+          "reviewer": {
+            "type": "string",
+            "title": "Reviewer"
+          },
+          "decision": {
+            "type": "string",
+            "title": "Decision"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "version_id",
+          "run_id",
+          "reviewer",
+          "decision",
+          "note",
+          "created_at"
+        ],
+        "title": "ReviewView"
+      },
+      "less__editorial_api__ReviewView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "gate": {
+            "type": "string",
+            "title": "Gate"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "actor": {
+            "type": "string",
+            "title": "Actor"
+          },
+          "detail": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Detail"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "revision",
+          "gate",
+          "status",
+          "actor",
+          "detail",
+          "created_at"
+        ],
+        "title": "ReviewView"
       },
       "less__validation_api__ParagraphView": {
         "properties": {

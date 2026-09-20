@@ -2,10 +2,13 @@
 
 import os
 import signal
+import socket
 import subprocess
 import sys
 import time
 from pathlib import Path
+
+from less.config import settings
 
 ROOT = Path(__file__).resolve().parents[1]
 BIN = ROOT / ".venv/bin"
@@ -13,6 +16,16 @@ DATA = ROOT / "data"
 
 
 def main():
+    # Refuse duplicate stacks before starting a second worker or touching Beat state.
+    for port in (8000, 5173):
+        with socket.socket() as probe:
+            probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            try:
+                probe.bind(("127.0.0.1", port))
+            except OSError as exc:
+                raise SystemExit(
+                    f"Port {port} is unavailable; inspect the existing Less service before restarting."
+                ) from exc
     DATA.mkdir(exist_ok=True)
     subprocess.run(["docker", "compose", "up", "-d", "--wait"], cwd=ROOT, check=True)
     subprocess.run([str(BIN / "alembic"), "upgrade", "head"], cwd=ROOT, check=True)
@@ -48,6 +61,8 @@ def main():
         (["npm", "run", "dev"], ROOT / "frontend"),
     ]
     children = []
+    failed = False
+    shutdown_timeout = max(settings().codex_timeout, (settings().max_items_per_check + 1) * 35) + 60
 
     def shutdown(signum=None, frame=None):
         raise KeyboardInterrupt
@@ -63,6 +78,7 @@ def main():
         while all(child.poll() is None for child in children):
             time.sleep(1)
         print("An application process exited; stopping the remaining processes.", file=sys.stderr)
+        failed = True
     except KeyboardInterrupt:
         pass
     finally:
@@ -71,9 +87,12 @@ def main():
                 os.killpg(child.pid, signal.SIGTERM)
         for child in children:
             try:
-                child.wait(timeout=10)
+                # Let an in-flight Codex invocation or bounded collection finish cleanly.
+                child.wait(timeout=shutdown_timeout)
             except subprocess.TimeoutExpired:
                 os.killpg(child.pid, signal.SIGKILL)
+    if failed:
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

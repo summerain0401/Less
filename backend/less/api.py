@@ -387,3 +387,7 @@ def invalid_value(request, exc):
 from less.validation_api import router as validation_router  # noqa: E402
 
 app.include_router(validation_router)
+
+from less.editorial_api import router as editorial_router  # noqa: E402
+
+app.include_router(editorial_router)
