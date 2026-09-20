@@ -1,0 +1,229 @@
+[
+  {
+    "id": "openai",
+    "name": "OpenAI News",
+    "node_url": "https://openai.com/news/",
+    "feed_url": "https://openai.com/news/rss.xml",
+    "role": "Primary",
+    "topics": [
+      "AI Coding",
+      "Agents"
+    ],
+    "coverage": [
+      "Frontier"
+    ],
+    "authority": "模型、产品和研究的一手发布",
+    "bias": "官方自述不代表独立验证",
+    "interval_hours": 6,
+    "status": "needs_review"
+  },
+  {
+    "id": "google-research",
+    "name": "Google Research",
+    "node_url": "https://research.google/blog/",
+    "feed_url": "https://research.google/blog/rss/",
+    "role": "Primary",
+    "topics": [
+      "Reasoning",
+      "AI Research"
+    ],
+    "coverage": [
+      "Frontier"
+    ],
+    "authority": "研究团队的研究与评估发布",
+    "bias": "机构视角，需核对论文方法与条件",
+    "interval_hours": 6
+  },
+  {
+    "id": "deepmind",
+    "name": "Google DeepMind",
+    "node_url": "https://deepmind.google/discover/blog/",
+    "feed_url": "https://deepmind.google/blog/rss.xml",
+    "role": "Primary",
+    "topics": [
+      "Frontier Models",
+      "Reasoning"
+    ],
+    "coverage": [
+      "Frontier"
+    ],
+    "authority": "模型能力与研究的一手发布",
+    "bias": "与 Google Research 有组织依赖",
+    "interval_hours": 6
+  },
+  {
+    "id": "huggingface",
+    "name": "Hugging Face Blog",
+    "node_url": "https://huggingface.co/blog",
+    "feed_url": "https://huggingface.co/blog/feed.xml",
+    "role": "Primary",
+    "topics": [
+      "Open Models",
+      "Agents"
+    ],
+    "coverage": [
+      "Frontier",
+      "Builders"
+    ],
+    "authority": "开放模型与工具的实践材料",
+    "bias": "平台和合作方利益关联",
+    "interval_hours": 6
+  },
+  {
+    "id": "github-engineering",
+    "name": "GitHub Engineering",
+    "node_url": "https://github.blog/engineering/",
+    "feed_url": "https://github.blog/engineering/feed/",
+    "role": "Builders",
+    "topics": [
+      "AI Coding",
+      "Agents"
+    ],
+    "coverage": [
+      "Builders"
+    ],
+    "authority": "软件工程、开发工具与平台实践",
+    "bias": "供应商工程叙述",
+    "interval_hours": 6
+  },
+  {
+    "id": "pytorch",
+    "name": "PyTorch Blog",
+    "node_url": "https://pytorch.org/blog/",
+    "feed_url": "https://pytorch.org/feed/",
+    "role": "Builders",
+    "topics": [
+      "Inference",
+      "Model Engineering"
+    ],
+    "coverage": [
+      "Builders"
+    ],
+    "authority": "模型训练与推理工程实践",
+    "bias": "项目生态视角",
+    "interval_hours": 6
+  },
+  {
+    "id": "langgraph",
+    "name": "LangGraph Releases",
+    "node_url": "https://github.com/langchain-ai/langgraph/releases",
+    "feed_url": "https://github.com/langchain-ai/langgraph/releases.atom",
+    "role": "Primary",
+    "topics": [
+      "AI Coding",
+      "Agents"
+    ],
+    "coverage": [
+      "Builders"
+    ],
+    "authority": "Agent 编排项目的实际版本变化",
+    "bias": "发布日志只证明变更，不能证明收益",
+    "interval_hours": 6
+  },
+  {
+    "id": "ollama",
+    "name": "Ollama Releases",
+    "node_url": "https://github.com/ollama/ollama/releases",
+    "feed_url": "https://github.com/ollama/ollama/releases.atom",
+    "role": "Primary",
+    "topics": [
+      "AI Coding",
+      "Agents"
+    ],
+    "coverage": [
+      "Builders"
+    ],
+    "authority": "本地模型运行工具的实际版本变化",
+    "bias": "项目发布视角，需筛掉细碎更新",
+    "interval_hours": 6
+  },
+  {
+    "id": "simon-willison",
+    "name": "Simon Willison",
+    "node_url": "https://simonwillison.net/",
+    "feed_url": "https://simonwillison.net/atom/everything/",
+    "role": "People",
+    "topics": [
+      "AI Coding",
+      "Agents"
+    ],
+    "coverage": [
+      "Voices",
+      "Builders"
+    ],
+    "authority": "LLM 工具与编码的持续公开实验",
+    "bias": "个人样本，不可推广为普遍结论",
+    "interval_hours": 6
+  },
+  {
+    "id": "lilian-weng",
+    "name": "Lilian Weng",
+    "node_url": "https://lilianweng.github.io/",
+    "feed_url": "https://lilianweng.github.io/index.xml",
+    "role": "People",
+    "topics": [
+      "AI Coding",
+      "Agents"
+    ],
+    "coverage": [
+      "Voices",
+      "Frontier"
+    ],
+    "authority": "Agents、推理与研究综述",
+    "bias": "低频；综述引用需回到原始论文",
+    "interval_hours": 6
+  },
+  {
+    "id": "latent-space",
+    "name": "Latent Space",
+    "node_url": "https://www.latent.space/",
+    "feed_url": "https://www.latent.space/feed",
+    "role": "Intelligence",
+    "topics": [
+      "AI Coding",
+      "Agents"
+    ],
+    "coverage": [
+      "Voices",
+      "Builders"
+    ],
+    "authority": "AI 工程访谈和产业观察",
+    "bias": "访谈嘉宾与作者有投资或从业立场",
+    "interval_hours": 6
+  },
+  {
+    "id": "hn-agents",
+    "name": "Hacker News · Agents / LLM",
+    "node_url": "https://news.ycombinator.com/",
+    "feed_url": "https://hnrss.org/newest?q=agent%20OR%20LLM",
+    "role": "Discovery",
+    "topics": [
+      "AI Coding",
+      "Agents"
+    ],
+    "coverage": [
+      "Builders"
+    ],
+    "authority": "独立实践、失败案例和讨论的发现入口",
+    "bias": "社区热度不作为事实证据",
+    "interval_hours": 6,
+    "status": "needs_review"
+  },
+  {
+    "id": "openai-codex",
+    "name": "OpenAI Codex Releases",
+    "node_url": "https://github.com/openai/codex/releases",
+    "feed_url": "https://github.com/openai/codex/releases.atom",
+    "role": "Primary",
+    "topics": [
+      "AI Coding",
+      "Agents"
+    ],
+    "coverage": [
+      "Builders"
+    ],
+    "authority": "编码代理的实际版本与修复记录",
+    "bias": "项目自述；版本变化不能证明实际效率收益",
+    "interval_hours": 6
+  }
+]

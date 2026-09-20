@@ -1,1 +1,96 @@
 # Less
+
+Read less. Know more.
+
+Less 的本地内容引擎。当前交付 Week 1 的 Source Registry、RSS/Atom 采集、原文版本、Codex 结构化提取及人工提取复核工作台。
+
+产品与实施依据见 [doc](doc/README.md)，选型和运行边界见 [技术架构](doc/04-technical-architecture.md)。Event、Value/Quality Gate、Brief 发布与 Signal 属于后续阶段；提取复核不等于事实核验或发布批准。
+
+## 本地启动
+
+前提：Python 3.12、uv、Node.js 22、npm、Docker Desktop、Codex CLI。Codex 已通过 ChatGPT 登录，且支持 `exec --ignore-user-config --output-schema`；本机验证版本为 0.154.0。应用在本机运行，Codex 推理仍需联网并占用账号额度。
+
+```sh
+make setup
+make dev
+```
+
+- 工作台：<http://127.0.0.1:5173>
+- API 文档：<http://127.0.0.1:8000/docs>
+- PostgreSQL：`127.0.0.1:55432`；Redis：`127.0.0.1:56379`
+
+`make dev` 启动 API、单进程 Worker、单个 Beat 和前端。Ctrl+C 停止应用进程，数据库容器及卷保留。需要停止基础设施时使用 `docker compose stop`。不要同时启动两套本地服务。
+
+默认不自动消耗 Codex 额度：采集自动运行，AI 提取由页面按钮或 CLI 入队。要启用采集后自动提取，复制 `.env.example` 为 `.env`，设置 `LESS_AUTO_NORMALIZE=true`，然后重启。AI 始终串行执行，首期每次调用超时 180 秒，临时失败最多尝试 3 次。登录失效或额度不足会暂停 AI 队列；处理原因后在页面点击“恢复处理”。
+
+所有 AI 入口共用每日上限，默认按 `Asia/Shanghai` 自然日最多 10 次调用，重试也计入。达到上限的任务保留在队列，次日恢复；不是“每天必须调用 10 次”。`.env` 中可用 `LESS_AI_DAILY_LIMIT`、`LESS_TIMEZONE` 调整上限和时区，重启后生效。历史缺少尝试日志的记录保守计数并单独披露；调用次数不等于实际费用。
+
+无需把 ChatGPT 登录信息复制进项目或容器，也不需要 API Key。`LESS_CODEX_MODEL` 为空时由 CLI 自身选择默认模型；项目会忽略用户 CLI 配置，隔离插件、工具和 hooks。需要指定模型时在 `.env` 设置账号实际可用的名称。
+
+## 日常操作
+
+1. 在来源管理检查来源状态，发起采集或等待下一次计划任务。
+2. 在原始材料中打开一份材料，查看原始链接、保存快照、发布日期及段落。
+3. 点击“开始 AI 提取”，等待 Worker 完成；对照原文引用检查摘要和陈述。
+4. 填写复核人及说明，记录“提取符合原文”或“需要修正”。所有复核都是追加记录，重跑提取不覆盖它们。
+
+页面入队操作依赖 Worker 和 Beat，通常下一分钟派发。单独运行前后端不会执行后台任务。需要立即串行处理时可以使用：
+
+```sh
+uv run less collect simon-willison
+uv run less collect all
+uv run less normalize <version-id>
+uv run less normalize <version-id> --force
+uv run less resume-ai
+```
+
+来源初始配置位于 `operations/source-registry.json`。`less seed` 仅插入不存在的来源，不覆盖数据库的健康信息和编辑操作。要显式应用该文件中的配置修订，运行 `uv run less seed --update`；变更写入审计日志。数据库是运行时真值，初始文件不是实时健康报表。
+
+当前登记 13 个节点。首次实际检查有 11 个成功保存正文；OpenAI News 的正文访问 403、HN RSS 的 Feed 访问 502 已标为 Needs Review。详情见 [首次验证记录](operations/reviews/2026-09-20-initial-validation.md)。
+
+每来源默认每 6 小时采集，单轮最多处理 5 个条目。新 URL 优先，随后重查已知条目；每轮显示 Feed 总数及未处理数量。重试固定使用首次保存的条目批次。此采集方式不保证覆盖 Feed 已移除的历史条目，高频来源需调整频率/容量或人工补录。历史条目保持原始日期，不能计为当天新闻。
+
+## Week 1 验收台
+
+左侧“验收台”提供日报、抽样核查和人工工作计时：
+
+1. 填写操作人。可使用已固定的首批 30 条样本（来自 74 个 Items、11 个来源），或创建新批次。样本在 AI 提取前按来源分散随机抽取，同一 Item 只取最新保存版本，保存随机种子和抽样总体。
+2. 点击“准备本批提取”将尚未准备的样本入队，遵守每日调用上限。失败样本留在清单中，避免只审查成功结果；可以显式重新提取。
+3. 打开样本，对照原始页面、保存快照和引用位置，逐字段选择正确、正确保留未知或有误。错误必须填写依据。未检查的字段保持“尚未核查”，不计入准确率；全部字段检查后才计为一个完整样本。
+4. 展开“人工工作计时”，选择实际来源范围、工作方式、类别和筛选标准，再开始计时。结束时填写阅读量、候选数、入选数及可定位结果。同一操作人不能同时启动两次；跨午夜耗时按日分摊。两次基线是否可比仍需人工确认。
+5. 选择日期导出日报。当天报告注明部分日窗口；手动采集与计划采集分开，漏调度也计入应执行次数。没有人工样本时准确率显示待核查，未实现的后续阶段指标保留未知。
+
+字段核查绑定精确提取版本，旧表单在重新提取后会被拒绝；历史记录不可覆盖。多批次重复抽到同一 Item 不会增加累计样本数，累计质量使用该 Item 最新一条人工核查。字段核查不等于事实批准或发布批准。
+
+```sh
+uv run less report --date 2026-09-20 --output operations/daily/2026-09-20.md
+```
+
+日报是数据库的可读导出，不作为第二份可编辑真值。历史日期的来源状态、人工验收进度是导出时累计值；当日采集、处理和计时按所选日窗口统计。当前首批抽样已固定，但尚未批量调用 AI，人工复核和手工基线均为 0。
+
+## 数据与备份
+
+- 数据库保存来源、检查记录、材料版本、模型任务、人工复核及审计日志。
+- `data/snapshots/` 保存按 SHA-256 寻址的不可变原文，文件先落盘，再写数据库引用。
+- `data/`、`.env`、依赖目录不提交到 Git。`.env.example` 的数据库密码仅用于绑定回环地址的本地 Compose 环境。
+
+```sh
+uv run less backup
+uv run less restore data/backups/<timestamp> --database-name less_restore_example
+```
+
+备份包含数据库 dump、原文快照及校验清单。恢复命令只允许新建 `less_restore_` 开头的数据库，并创建独立数据目录；不会覆盖当前数据库。它会验证恢复后全部原文引用。需要切换到恢复的数据时，按命令输出在 `.env` 设置 `LESS_DATABASE_URL` 和 `LESS_DATA_DIR` 后重启。备份/恢复工具当前仅支持默认的本地 Compose 部署。
+
+## 验证与维护
+
+```sh
+make test
+make api-types
+cd frontend
+npx playwright install chromium
+npm run test:e2e
+```
+
+后端集成测试会创建并清理独立 `less_test_` 数据库，不修改业务数据。浏览器测试需要运行中的 API 和已采集材料；复核写入场景使用明确的测试夹具拦截，不向真实库写入假审批。前端类型来自提交的 `openapi.json`，修改 API 后执行 `make api-types`。
+
+当前软件验证不代表已完成连续 3 天采集、两次人工筛选基线或 7 天内容验证；这些运行验收项继续按 MVP 文档记录。
