@@ -6,6 +6,7 @@ import { EditorialInbox } from "./EditorialInbox";
 import { AssistWorkspace } from "./AssistWorkspace";
 import { SignalWorkspace } from "./SignalWorkspace";
 import { BriefWorkspace } from "./BriefWorkspace";
+import { SystemGuide } from "./SystemGuide";
 import "./style.css";
 
 const time = (value: string | null) =>
@@ -53,7 +54,9 @@ async function api<T>(
 }
 
 function App() {
-  const [tab, setTab] = useState("items");
+  const [tab, setTab] = useState(() =>
+    window.location.hash === "#guide" ? "guide" : "items",
+  );
   const [sources, setSources] = useState<Source[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [checks, setChecks] = useState<Check[]>([]);
@@ -82,6 +85,7 @@ function App() {
     if (selected) setDetail(await api<Detail>(`/versions/${selected}`));
   }, [selected]);
   useEffect(() => {
+    if (tab === "guide") return;
     let mounted = true;
     const update = () =>
       refresh().catch((e) => {
@@ -93,7 +97,7 @@ function App() {
       mounted = false;
       clearInterval(timer);
     };
-  }, [refresh]);
+  }, [refresh, tab]);
   async function action(fn: () => Promise<unknown>, message: string) {
     setBusy(true);
     setError("");
@@ -139,12 +143,18 @@ function App() {
             ["briefs", "Brief 与 Today", "06"],
             ["signals", "Signal", "07"],
             ["assist", "机器辅助", "08"],
+            ["guide", "系统说明", "09"],
           ].map(([id, label, n]) => (
             <button
               key={id}
               className={tab === id ? "selected" : ""}
               onClick={() => {
                 setTab(id);
+                if (id === "guide") {
+                  window.history.replaceState(null, "", "#guide");
+                } else if (window.location.hash === "#guide") {
+                  window.history.replaceState(null, "", window.location.pathname);
+                }
                 setSelected(null);
                 setDetail(null);
               }}
@@ -160,7 +170,9 @@ function App() {
           <small>PHASE 1 / 编辑工作台</small>
         </div>
       </aside>
-      <main>
+      <main className={tab === "guide" ? "guide-main" : ""}>
+        {tab === "guide" && <SystemGuide onNavigate={setTab} />}
+        {tab !== "guide" && <>
         <header>
           <div>
             <div className="eyebrow">LESS INTELLIGENCE ENGINE</div>
@@ -682,6 +694,7 @@ function App() {
         <footer>
           Less noise. More signal.<span>原始材料 → 结构化提取 → 人工判断</span>
         </footer>
+        </>}
       </main>
     </div>
   );
