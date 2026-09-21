@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ReadingFeedback } from "./ReadingFeedback";
 import { EditorForm, request } from "./editorialForms";
 import type { S } from "./editorialForms";
 
@@ -273,6 +274,11 @@ export function BriefWorkspace() {
                       await refresh();
                     })
                   }
+                />
+                <ReadingFeedback
+                  detail={detail}
+                  actor={actor}
+                  disabled={busy || !actor.trim()}
                 />
                 <details>
                   <summary>版本与审核历史</summary>

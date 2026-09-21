@@ -1,6 +1,6 @@
 """Internal publication with immutable content versions and explicit approval."""
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Literal
 
 from fastapi import APIRouter, HTTPException
@@ -24,6 +24,7 @@ from less.models import (
     Evidence,
     Item,
     ItemVersion,
+    ReadingFeedback,
     TodayEdition,
     now,
 )
@@ -418,3 +419,59 @@ def today(day: date | None = None):
             "readable_count": sum(e["status"] == "published" for e in entries),
             "limit": 5,
         }
+
+
+class ReadingInput(Input):
+    version_id: str
+    would_read_again: bool
+    reason: str = Field(min_length=1, max_length=5000)
+    read_original: bool
+
+
+class ReadingView(ORMView):
+    id: str
+    version_id: str
+    actor: str
+    would_read_again: bool
+    reason: str
+    next_day: bool
+    created_at: datetime
+
+
+@router.get("/briefs/{brief_id}/reading-feedback", response_model=list[ReadingView])
+def reading_history(brief_id: str):
+    with Session() as db:
+        return db.scalars(
+            select(ReadingFeedback)
+            .join(BriefVersion)
+            .where(BriefVersion.brief_id == brief_id)
+            .order_by(ReadingFeedback.created_at.desc(), ReadingFeedback.id)
+        ).all()
+
+
+@router.post("/briefs/{brief_id}/reading-feedback", response_model=ReadingView, status_code=201)
+def reading_feedback(brief_id: str, body: ReadingInput):
+    with Session() as db:
+        version = db.get(BriefVersion, body.version_id)
+        if not version or version.brief_id != brief_id or not body.read_original:
+            raise ValueError("需实际复读对应已发布版本再记录反馈")
+        # Publication history is retained in explicit publish reviews, including corrected editions.
+        published_at = db.scalar(
+            select(func.min(BriefReview.created_at)).where(
+                BriefReview.brief_id == brief_id,
+                BriefReview.revision == version.revision,
+                BriefReview.action == "publish",
+            )
+        )
+        if not published_at or local_today() <= local_today(published_at):
+            raise ValueError("请在发布次日或之后复读，不能用当日写作替代阅读反馈")
+        feedback = ReadingFeedback(
+            version_id=version.id,
+            actor=body.actor,
+            would_read_again=body.would_read_again,
+            reason=body.reason,
+            next_day=local_today() == local_today(published_at) + timedelta(days=1),
+        )
+        db.add(feedback)
+        db.commit()
+        return feedback

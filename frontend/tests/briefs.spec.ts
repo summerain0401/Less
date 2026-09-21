@@ -37,7 +37,23 @@ test("Brief review UI requires explicit version actions and Today hides changed 
   const reviews: Record<string, unknown>[] = [];
   let published = false;
   const actions: string[] = [];
+  const feedback: Record<string, unknown>[] = [];
   await page.route("**/api/briefs**", async (route) => {
+    if (route.request().url().endsWith("reading-feedback")) {
+      if (route.request().method() === "POST") {
+        const body = route.request().postDataJSON();
+        expect(body.version_id).toBe("version");
+        expect(body.read_original).toBe(true);
+        feedback.push({
+          id: "feedback",
+          ...body,
+          next_day: true,
+          created_at: "2026-09-22T00:00:00Z",
+        });
+        return route.fulfill({ status: 201, json: feedback[0] });
+      }
+      return route.fulfill({ json: feedback });
+    }
     if (route.request().method() === "POST") {
       const body = route.request().postDataJSON();
       expect(body.actor).toBe("Fixture editor");
@@ -156,6 +172,21 @@ test("Brief review UI requires explicit version actions and Today hides changed 
   await expect(page.getByText(/当前状态：已批准/)).toBeVisible();
   await perform("publish");
   await expect(page.getByText("2026-09-21 · 1 条可读内容")).toBeVisible();
+  await page.getByText("次日阅读反馈", { exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "记录阅读反馈" }),
+  ).toBeDisabled();
+  await page.getByLabel("我已实际复读所选已发布版本").check();
+  await page.getByLabel("是否仍愿意看").selectOption("true");
+  await page
+    .getByLabel("实际阅读价值与原因")
+    .fill("Fixture next-day reflection");
+  await page.getByRole("button", { name: "记录阅读反馈" }).click();
+  await expect(
+    page.getByText(
+      "Fixture editor · 次日 · 仍愿意看：Fixture next-day reflection",
+    ),
+  ).toBeVisible();
   await perform("withdraw");
   await expect(page.getByText(/原版本 1 暂不展示/)).toBeVisible();
   expect(actions).toEqual(["submit", "approve", "publish", "withdraw"]);

@@ -387,3 +387,14 @@ class SignalRecord(Base):
     reason: Mapped[str] = mapped_column(Text)
     detail: Mapped[dict] = mapped_column(JSONB)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class ReadingFeedback(Base):
+    __tablename__ = "reading_feedback"
+    id: Mapped[str] = mapped_column(primary_key=True, default=uid)
+    version_id: Mapped[str] = mapped_column(ForeignKey("brief_versions.id"))
+    actor: Mapped[str]
+    would_read_again: Mapped[bool]
+    reason: Mapped[str] = mapped_column(Text)
+    next_day: Mapped[bool]
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)

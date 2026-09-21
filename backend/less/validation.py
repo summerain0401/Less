@@ -320,6 +320,7 @@ def report(day: date, at=None):
                 WorkSession.ended_at.is_not(None),
             )
         )
+        activity = editorial_activity(db, start, cutoff)
         return {
             "date": day,
             "timezone": settings().timezone,
@@ -353,7 +354,13 @@ def report(day: date, at=None):
             if first_check
             else 0,
             "sources": source_rows,
-            "later_stages": {"events": None, "candidates": None, "published_briefs": None},
+            "later_stages": {
+                "events": activity["events_created"],
+                "candidates": None,
+                "published_briefs": activity["published_briefs"],
+            },
+            "editorial_activity": activity,
+            "editorial_activity_note": "按所选日期记录创建、审核、发布和复评活动；审核按事件与门保留当日最后一次判断，非日末内容有效状态。不同阶段不可直接相减计算过滤率。次日阅读按版本与读者去重，保留本日最后反馈。",
         }
 
 
@@ -403,3 +410,63 @@ def stop_session(session_id, read_count, candidate_count, selected_count, note):
         record.note = note
         db.commit()
         return record
+
+
+def editorial_activity(db, start, cutoff):
+    """Dated activity, not ratios between unrelated lifecycle populations."""
+    from less.models import (
+        BriefReview,
+        EditorialEvent,
+        EditorialReview,
+        ReadingFeedback,
+        SignalRecord,
+    )
+
+    events = db.scalar(
+        select(func.count())
+        .select_from(EditorialEvent)
+        .where(EditorialEvent.created_at >= start, EditorialEvent.created_at < cutoff)
+    )
+    reviews = db.scalars(
+        select(EditorialReview)
+        .where(EditorialReview.created_at >= start, EditorialReview.created_at < cutoff)
+        .order_by(EditorialReview.created_at, EditorialReview.id)
+    ).all()
+    latest = {(r.event_id, r.gate): r for r in reviews}
+    counts = Counter(f"{r.gate}_{r.status}" for r in latest.values())
+    publication_ids = set(
+        db.scalars(
+            select(BriefReview.brief_id).where(
+                BriefReview.action == "publish",
+                BriefReview.created_at >= start,
+                BriefReview.created_at < cutoff,
+            )
+        )
+    )
+    signal_ids = set(
+        db.scalars(
+            select(SignalRecord.signal_id).where(
+                SignalRecord.kind == "review",
+                SignalRecord.created_at >= start,
+                SignalRecord.created_at < cutoff,
+            )
+        )
+    )
+    feedback = db.scalars(
+        select(ReadingFeedback)
+        .where(
+            ReadingFeedback.created_at >= start,
+            ReadingFeedback.created_at < cutoff,
+            ReadingFeedback.next_day.is_(True),
+        )
+        .order_by(ReadingFeedback.created_at, ReadingFeedback.id)
+    ).all()
+    latest_feedback = {(r.version_id, r.actor): r for r in feedback}
+    return {
+        "events_created": events,
+        "published_briefs": len(publication_ids),
+        "signals_reviewed": len(signal_ids),
+        "next_day_reviews": len(latest_feedback),
+        "next_day_would_read": sum(r.would_read_again for r in latest_feedback.values()),
+        **dict(counts),
+    }

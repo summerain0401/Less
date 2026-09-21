@@ -217,7 +217,8 @@ def test_report_separates_manual_and_includes_missing_scheduler_slots(database):
     assert r["success_rate"] == 1 / 3 and not r["closed"]
     assert r["sources"][0]["planned"] == 3
     assert r["quality"]["accuracy"] is None
-    assert r["cost"] is None and all(v is None for v in r["later_stages"].values())
+    assert r["cost"] is None and r["later_stages"]["candidates"] is None
+    assert r["later_stages"]["events"] == 0 and r["later_stages"]["published_briefs"] == 0
     assert report(day, at=end)["closed"]
 
 

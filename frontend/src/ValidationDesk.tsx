@@ -185,6 +185,37 @@ export function ValidationDesk({ sources }: { sources: Source[] }) {
               <small>重试计入额度 · 次日自动恢复等待任务</small>
             </div>
           </div>
+          {report.editorial_activity && (
+            <details className="work-panel">
+              <summary>编辑阶段与次日阅读记录</summary>
+              <p className="muted">{report.editorial_activity_note}</p>
+              {Object.entries(report.editorial_activity).map(([key, count]) => (
+                <p key={key}>
+                  {(
+                    {
+                      events_created: "新建事件",
+                      published_briefs: "内部发布 Brief",
+                      signals_reviewed: "复评 Signal",
+                      next_day_reviews: "次日复读记录",
+                      next_day_would_read: "次日仍愿意看",
+                      value_passed: "价值审核通过",
+                      value_pending: "价值待判断",
+                      value_rejected: "价值淘汰",
+                      quality_passed: "质量审核通过",
+                      quality_pending: "质量待核实",
+                      quality_rejected: "质量不通过",
+                      decision_selected: "人工入选",
+                      decision_deferred: "暂缓",
+                      decision_rejected: "驳回",
+                      decision_evidence_only: "仅存证",
+                      decision_observe: "观察",
+                    } as Record<string, string>
+                  )[key] ?? key}
+                  ：{count}
+                </p>
+              ))}
+            </details>
+          )}
           <p className="muted">
             {report.timezone} ·{" "}
             {report.closed ? "完整日窗口" : "今日记录仍在累积"} · 新材料{" "}

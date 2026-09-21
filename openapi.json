@@ -2240,6 +2240,102 @@
         }
       }
     },
+    "/api/briefs/{brief_id}/reading-feedback": {
+      "get": {
+        "tags": [
+          "Brief and Today"
+        ],
+        "summary": "Reading History",
+        "operationId": "reading_history_api_briefs__brief_id__reading_feedback_get",
+        "parameters": [
+          {
+            "name": "brief_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Brief Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReadingView"
+                  },
+                  "title": "Response Reading History Api Briefs  Brief Id  Reading Feedback Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Brief and Today"
+        ],
+        "summary": "Reading Feedback",
+        "operationId": "reading_feedback_api_briefs__brief_id__reading_feedback_post",
+        "parameters": [
+          {
+            "name": "brief_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Brief Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReadingInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadingView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/signals": {
       "get": {
         "tags": [
@@ -3813,6 +3909,17 @@
             },
             "type": "object",
             "title": "Later Stages"
+          },
+          "editorial_activity": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Editorial Activity"
+          },
+          "editorial_activity_note": {
+            "type": "string",
+            "title": "Editorial Activity Note"
           }
         },
         "type": "object",
@@ -3842,7 +3949,9 @@
           "active_sessions",
           "observation_hours",
           "sources",
-          "later_stages"
+          "later_stages",
+          "editorial_activity",
+          "editorial_activity_note"
         ],
         "title": "DailyReportView"
       },
@@ -5494,6 +5603,88 @@
           "accuracy"
         ],
         "title": "QualityView"
+      },
+      "ReadingInput": {
+        "properties": {
+          "actor": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Actor"
+          },
+          "version_id": {
+            "type": "string",
+            "title": "Version Id"
+          },
+          "would_read_again": {
+            "type": "boolean",
+            "title": "Would Read Again"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Reason"
+          },
+          "read_original": {
+            "type": "boolean",
+            "title": "Read Original"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "actor",
+          "version_id",
+          "would_read_again",
+          "reason",
+          "read_original"
+        ],
+        "title": "ReadingInput"
+      },
+      "ReadingView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "version_id": {
+            "type": "string",
+            "title": "Version Id"
+          },
+          "actor": {
+            "type": "string",
+            "title": "Actor"
+          },
+          "would_read_again": {
+            "type": "boolean",
+            "title": "Would Read Again"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "next_day": {
+            "type": "boolean",
+            "title": "Next Day"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "version_id",
+          "actor",
+          "would_read_again",
+          "reason",
+          "next_day",
+          "created_at"
+        ],
+        "title": "ReadingView"
       },
       "RestoreInput": {
         "properties": {

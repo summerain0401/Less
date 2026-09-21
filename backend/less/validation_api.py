@@ -103,6 +103,8 @@ class DailyReportView(BaseModel):
     observation_hours: float
     sources: list[SourceMetric]
     later_stages: dict[str, int | None]
+    editorial_activity: dict[str, int]
+    editorial_activity_note: str
 
 
 class BatchView(BaseModel):
@@ -333,7 +335,13 @@ def daily_markdown(day: date | None = None):
             for s in r["sources"]
         ],
         "",
-        "Event / Candidate / Brief 阶段尚未实现，指标为未知而非 0。",
+        "## 当日编辑阶段活动",
+        "",
+        r["editorial_activity_note"],
+        "",
+        *[f"- {key}: {value}" for key, value in r["editorial_activity"].items()],
+        "",
+        "机器 Candidate 阶段尚未实现，其指标为未知而非 0。",
         "此文件是数据库的只读导出；需要更正时应在工作台追加记录后重新导出。",
         "",
     ]

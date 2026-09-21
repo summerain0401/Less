@@ -792,6 +792,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/briefs/{brief_id}/reading-feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Reading History */
+        get: operations["reading_history_api_briefs__brief_id__reading_feedback_get"];
+        put?: never;
+        /** Reading Feedback */
+        post: operations["reading_feedback_api_briefs__brief_id__reading_feedback_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/signals": {
         parameters: {
             query?: never;
@@ -1365,6 +1383,12 @@ export interface components {
             later_stages: {
                 [key: string]: number | null;
             };
+            /** Editorial Activity */
+            editorial_activity: {
+                [key: string]: number;
+            };
+            /** Editorial Activity Note */
+            editorial_activity_note: string;
         };
         /** DecisionInput */
         DecisionInput: {
@@ -1927,6 +1951,39 @@ export interface components {
             incorrect_fields: number;
             /** Accuracy */
             accuracy: number | null;
+        };
+        /** ReadingInput */
+        ReadingInput: {
+            /** Actor */
+            actor: string;
+            /** Version Id */
+            version_id: string;
+            /** Would Read Again */
+            would_read_again: boolean;
+            /** Reason */
+            reason: string;
+            /** Read Original */
+            read_original: boolean;
+        };
+        /** ReadingView */
+        ReadingView: {
+            /** Id */
+            id: string;
+            /** Version Id */
+            version_id: string;
+            /** Actor */
+            actor: string;
+            /** Would Read Again */
+            would_read_again: boolean;
+            /** Reason */
+            reason: string;
+            /** Next Day */
+            next_day: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
         };
         /** RestoreInput */
         RestoreInput: {
@@ -4119,6 +4176,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reading_history_api_briefs__brief_id__reading_feedback_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                brief_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadingView"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reading_feedback_api_briefs__brief_id__reading_feedback_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                brief_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReadingInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadingView"];
                 };
             };
             /** @description Validation Error */
