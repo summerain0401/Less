@@ -12,6 +12,9 @@ from less.models import (
     EventMember,
     Evidence,
     ItemVersion,
+    Signal,
+    SignalEvidence,
+    SignalRecord,
     now,
 )
 
@@ -54,6 +57,24 @@ def invalidate(db, event, actor, action, detail):
                     reason=f"事件修订 {event.revision}: {action}；{detail.get('reason', '')}",
                 )
             )
+    linked_signals = select(SignalEvidence.signal_id).where(
+        SignalEvidence.event_id == event.id, SignalEvidence.active.is_(True)
+    )
+    for signal in db.scalars(
+        select(Signal).where(Signal.id.in_(linked_signals)).order_by(Signal.id).with_for_update()
+    ):
+        signal.revision += 1
+        signal.needs_review = True
+        db.add(
+            SignalRecord(
+                signal_id=signal.id,
+                revision=signal.revision,
+                kind="source_changed",
+                actor=actor,
+                reason=f"关联事件修订 {event.revision}: {action}",
+                detail={"event_id": event.id, "event_revision": event.revision},
+            )
+        )
     audit(db, event, actor, action, detail)
 
 

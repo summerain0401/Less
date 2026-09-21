@@ -2239,6 +2239,379 @@
           }
         }
       }
+    },
+    "/api/signals": {
+      "get": {
+        "tags": [
+          "Signal"
+        ],
+        "summary": "Signals",
+        "operationId": "signals_api_signals_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SignalView"
+                  },
+                  "type": "array",
+                  "title": "Response Signals Api Signals Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Signal"
+        ],
+        "summary": "Create",
+        "operationId": "create_api_signals_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignalCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignalView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/signals/{signal_id}": {
+      "get": {
+        "tags": [
+          "Signal"
+        ],
+        "summary": "Detail",
+        "operationId": "detail_api_signals__signal_id__get",
+        "parameters": [
+          {
+            "name": "signal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Signal Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignalDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Signal"
+        ],
+        "summary": "Edit",
+        "operationId": "edit_api_signals__signal_id__patch",
+        "parameters": [
+          {
+            "name": "signal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Signal Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ThesisEdit"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignalView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/signals/{signal_id}/evidence": {
+      "post": {
+        "tags": [
+          "Signal"
+        ],
+        "summary": "Link",
+        "operationId": "link_api_signals__signal_id__evidence_post",
+        "parameters": [
+          {
+            "name": "signal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Signal Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignalLink"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignalLinkView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/signals/{signal_id}/evidence/{link_id}/unlink": {
+      "post": {
+        "tags": [
+          "Signal"
+        ],
+        "summary": "Unlink",
+        "operationId": "unlink_api_signals__signal_id__evidence__link_id__unlink_post",
+        "parameters": [
+          {
+            "name": "signal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Signal Id"
+            }
+          },
+          {
+            "name": "link_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Link Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Mutation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignalView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/signals/{signal_id}/searches": {
+      "post": {
+        "tags": [
+          "Signal"
+        ],
+        "summary": "Search",
+        "operationId": "search_api_signals__signal_id__searches_post",
+        "parameters": [
+          {
+            "name": "signal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Signal Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchRecord"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignalView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/signals/{signal_id}/reviews": {
+      "post": {
+        "tags": [
+          "Signal"
+        ],
+        "summary": "Review",
+        "operationId": "review_api_signals__signal_id__reviews_post",
+        "parameters": [
+          {
+            "name": "signal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Signal Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignalReviewInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignalView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -5461,6 +5834,63 @@
         ],
         "title": "SampleView"
       },
+      "SearchRecord": {
+        "properties": {
+          "actor": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Actor"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Revision"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Reason"
+          },
+          "query": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Query"
+          },
+          "source_types": {
+            "type": "string",
+            "maxLength": 3000,
+            "minLength": 1,
+            "title": "Source Types"
+          },
+          "results": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Results"
+          },
+          "gaps": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Gaps"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "actor",
+          "revision",
+          "reason",
+          "query",
+          "source_types",
+          "results",
+          "gaps"
+        ],
+        "title": "SearchRecord"
+      },
       "SessionInput": {
         "properties": {
           "reviewer": {
@@ -5622,6 +6052,352 @@
           "note"
         ],
         "title": "SessionView"
+      },
+      "SignalCreate": {
+        "properties": {
+          "actor": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Actor"
+          },
+          "thesis": {
+            "$ref": "#/components/schemas/Thesis"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "actor",
+          "thesis"
+        ],
+        "title": "SignalCreate"
+      },
+      "SignalDetail": {
+        "properties": {
+          "signal": {
+            "$ref": "#/components/schemas/SignalView"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/SignalLinkView"
+            },
+            "type": "array",
+            "title": "Evidence"
+          },
+          "records": {
+            "items": {
+              "$ref": "#/components/schemas/SignalRecordView"
+            },
+            "type": "array",
+            "title": "Records"
+          },
+          "stale_link_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Stale Link Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "signal",
+          "evidence",
+          "records",
+          "stale_link_ids"
+        ],
+        "title": "SignalDetail"
+      },
+      "SignalLink": {
+        "properties": {
+          "actor": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Actor"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Revision"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Reason"
+          },
+          "evidence_id": {
+            "type": "string",
+            "title": "Evidence Id"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "supporting",
+              "counter",
+              "context"
+            ],
+            "title": "Direction"
+          },
+          "rationale": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Rationale"
+          },
+          "original_checked": {
+            "type": "boolean",
+            "title": "Original Checked"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "actor",
+          "revision",
+          "reason",
+          "evidence_id",
+          "direction",
+          "rationale",
+          "original_checked"
+        ],
+        "title": "SignalLink"
+      },
+      "SignalLinkView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "evidence_id": {
+            "type": "string",
+            "title": "Evidence Id"
+          },
+          "event_id": {
+            "type": "string",
+            "title": "Event Id"
+          },
+          "event_revision": {
+            "type": "integer",
+            "title": "Event Revision"
+          },
+          "direction": {
+            "type": "string",
+            "title": "Direction"
+          },
+          "rationale": {
+            "type": "string",
+            "title": "Rationale"
+          },
+          "snapshot": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Snapshot"
+          },
+          "active": {
+            "type": "boolean",
+            "title": "Active"
+          },
+          "added_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Added At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "evidence_id",
+          "event_id",
+          "event_revision",
+          "direction",
+          "rationale",
+          "snapshot",
+          "active",
+          "added_at"
+        ],
+        "title": "SignalLinkView"
+      },
+      "SignalRecordView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "actor": {
+            "type": "string",
+            "title": "Actor"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "detail": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Detail"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "revision",
+          "kind",
+          "actor",
+          "reason",
+          "detail",
+          "created_at"
+        ],
+        "title": "SignalRecordView"
+      },
+      "SignalReviewInput": {
+        "properties": {
+          "actor": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Actor"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Revision"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Reason"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "candidate",
+              "emerging",
+              "strong",
+              "established",
+              "weakening",
+              "rejected"
+            ],
+            "title": "Status"
+          },
+          "our_view": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Our View"
+          },
+          "independence": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Independence"
+          },
+          "alternatives": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Alternatives"
+          },
+          "maturity_evidence": {
+            "type": "string",
+            "maxLength": 5000,
+            "title": "Maturity Evidence",
+            "default": ""
+          },
+          "counter_resolutions": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Counter Resolutions"
+          },
+          "original_checked": {
+            "type": "boolean",
+            "title": "Original Checked"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "actor",
+          "revision",
+          "reason",
+          "status",
+          "our_view",
+          "independence",
+          "alternatives",
+          "original_checked"
+        ],
+        "title": "SignalReviewInput"
+      },
+      "SignalView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "thesis": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Thesis"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "needs_review": {
+            "type": "boolean",
+            "title": "Needs Review"
+          },
+          "last_reviewed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Reviewed At"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "revision",
+          "thesis",
+          "status",
+          "needs_review",
+          "last_reviewed_at",
+          "created_at"
+        ],
+        "title": "SignalView"
       },
       "SourceEdit": {
         "properties": {
@@ -5889,6 +6665,102 @@
           "title"
         ],
         "title": "SuggestedEvent"
+      },
+      "Thesis": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "statement": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Statement"
+          },
+          "scope": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Scope"
+          },
+          "starts_on": {
+            "type": "string",
+            "format": "date",
+            "title": "Starts On"
+          },
+          "ends_on": {
+            "type": "string",
+            "format": "date",
+            "title": "Ends On"
+          },
+          "falsification": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Falsification"
+          },
+          "counter_plan": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Counter Plan"
+          },
+          "owner": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Owner"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "title",
+          "statement",
+          "scope",
+          "starts_on",
+          "ends_on",
+          "falsification",
+          "counter_plan",
+          "owner"
+        ],
+        "title": "Thesis"
+      },
+      "ThesisEdit": {
+        "properties": {
+          "actor": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Actor"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Revision"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Reason"
+          },
+          "thesis": {
+            "$ref": "#/components/schemas/Thesis"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "actor",
+          "revision",
+          "reason",
+          "thesis"
+        ],
+        "title": "ThesisEdit"
       },
       "ValidationError": {
         "properties": {

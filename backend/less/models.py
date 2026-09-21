@@ -349,3 +349,41 @@ class BriefPublication(Base):
     revision: Mapped[int]
     actor: Mapped[str]
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class Signal(Base):
+    __tablename__ = "signals"
+    id: Mapped[str] = mapped_column(primary_key=True, default=uid)
+    revision: Mapped[int] = mapped_column(default=1)
+    thesis: Mapped[dict] = mapped_column(JSONB)
+    status: Mapped[str] = mapped_column(default="draft")
+    needs_review: Mapped[bool] = mapped_column(default=True)
+    last_reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class SignalEvidence(Base):
+    __tablename__ = "signal_evidence"
+    __table_args__ = (UniqueConstraint("signal_id", "evidence_id"),)
+    id: Mapped[str] = mapped_column(primary_key=True, default=uid)
+    signal_id: Mapped[str] = mapped_column(ForeignKey("signals.id"))
+    evidence_id: Mapped[str] = mapped_column(ForeignKey("evidence.id"))
+    event_id: Mapped[str] = mapped_column(ForeignKey("editorial_events.id"))
+    event_revision: Mapped[int]
+    direction: Mapped[str]
+    rationale: Mapped[str] = mapped_column(Text)
+    snapshot: Mapped[dict] = mapped_column(JSONB)
+    active: Mapped[bool] = mapped_column(default=True)
+    added_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class SignalRecord(Base):
+    __tablename__ = "signal_records"
+    id: Mapped[str] = mapped_column(primary_key=True, default=uid)
+    signal_id: Mapped[str] = mapped_column(ForeignKey("signals.id"))
+    revision: Mapped[int]
+    kind: Mapped[str]
+    actor: Mapped[str]
+    reason: Mapped[str] = mapped_column(Text)
+    detail: Mapped[dict] = mapped_column(JSONB)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)

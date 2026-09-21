@@ -399,3 +399,7 @@ app.include_router(cluster_audit_router)
 from less.briefs import router as briefs_router  # noqa: E402
 
 app.include_router(briefs_router)
+
+from less.signals import router as signals_router  # noqa: E402
+
+app.include_router(signals_router)

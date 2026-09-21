@@ -792,6 +792,110 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/signals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Signals */
+        get: operations["signals_api_signals_get"];
+        put?: never;
+        /** Create */
+        post: operations["create_api_signals_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/signals/{signal_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Detail */
+        get: operations["detail_api_signals__signal_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edit */
+        patch: operations["edit_api_signals__signal_id__patch"];
+        trace?: never;
+    };
+    "/api/signals/{signal_id}/evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Link */
+        post: operations["link_api_signals__signal_id__evidence_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/signals/{signal_id}/evidence/{link_id}/unlink": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Unlink */
+        post: operations["unlink_api_signals__signal_id__evidence__link_id__unlink_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/signals/{signal_id}/searches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Search */
+        post: operations["search_api_signals__signal_id__searches_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/signals/{signal_id}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Review */
+        post: operations["review_api_signals__signal_id__reviews_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1930,6 +2034,23 @@ export interface components {
             /** Reviewed */
             reviewed: boolean;
         };
+        /** SearchRecord */
+        SearchRecord: {
+            /** Actor */
+            actor: string;
+            /** Revision */
+            revision: number;
+            /** Reason */
+            reason: string;
+            /** Query */
+            query: string;
+            /** Source Types */
+            source_types: string;
+            /** Results */
+            results: string;
+            /** Gaps */
+            gaps: string;
+        };
         /** SessionInput */
         SessionInput: {
             /** Reviewer */
@@ -1978,6 +2099,143 @@ export interface components {
             selected_count: number | null;
             /** Note */
             note: string | null;
+        };
+        /** SignalCreate */
+        SignalCreate: {
+            /** Actor */
+            actor: string;
+            thesis: components["schemas"]["Thesis"];
+        };
+        /** SignalDetail */
+        SignalDetail: {
+            signal: components["schemas"]["SignalView"];
+            /** Evidence */
+            evidence: components["schemas"]["SignalLinkView"][];
+            /** Records */
+            records: components["schemas"]["SignalRecordView"][];
+            /** Stale Link Ids */
+            stale_link_ids: string[];
+        };
+        /** SignalLink */
+        SignalLink: {
+            /** Actor */
+            actor: string;
+            /** Revision */
+            revision: number;
+            /** Reason */
+            reason: string;
+            /** Evidence Id */
+            evidence_id: string;
+            /**
+             * Direction
+             * @enum {string}
+             */
+            direction: "supporting" | "counter" | "context";
+            /** Rationale */
+            rationale: string;
+            /** Original Checked */
+            original_checked: boolean;
+        };
+        /** SignalLinkView */
+        SignalLinkView: {
+            /** Id */
+            id: string;
+            /** Evidence Id */
+            evidence_id: string;
+            /** Event Id */
+            event_id: string;
+            /** Event Revision */
+            event_revision: number;
+            /** Direction */
+            direction: string;
+            /** Rationale */
+            rationale: string;
+            /** Snapshot */
+            snapshot: {
+                [key: string]: unknown;
+            };
+            /** Active */
+            active: boolean;
+            /**
+             * Added At
+             * Format: date-time
+             */
+            added_at: string;
+        };
+        /** SignalRecordView */
+        SignalRecordView: {
+            /** Id */
+            id: string;
+            /** Revision */
+            revision: number;
+            /** Kind */
+            kind: string;
+            /** Actor */
+            actor: string;
+            /** Reason */
+            reason: string;
+            /** Detail */
+            detail: {
+                [key: string]: unknown;
+            };
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** SignalReviewInput */
+        SignalReviewInput: {
+            /** Actor */
+            actor: string;
+            /** Revision */
+            revision: number;
+            /** Reason */
+            reason: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "candidate" | "emerging" | "strong" | "established" | "weakening" | "rejected";
+            /** Our View */
+            our_view: string;
+            /** Independence */
+            independence: string;
+            /** Alternatives */
+            alternatives: string;
+            /**
+             * Maturity Evidence
+             * @default
+             */
+            maturity_evidence: string;
+            /** Counter Resolutions */
+            counter_resolutions?: {
+                [key: string]: string;
+            };
+            /** Original Checked */
+            original_checked: boolean;
+        };
+        /** SignalView */
+        SignalView: {
+            /** Id */
+            id: string;
+            /** Revision */
+            revision: number;
+            /** Thesis */
+            thesis: {
+                [key: string]: unknown;
+            };
+            /** Status */
+            status: string;
+            /** Needs Review */
+            needs_review: boolean;
+            /** Last Reviewed At */
+            last_reviewed_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
         };
         /** SourceEdit */
         SourceEdit: {
@@ -2069,6 +2327,41 @@ export interface components {
             revision: number;
             /** Title */
             title: string;
+        };
+        /** Thesis */
+        Thesis: {
+            /** Title */
+            title: string;
+            /** Statement */
+            statement: string;
+            /** Scope */
+            scope: string;
+            /**
+             * Starts On
+             * Format: date
+             */
+            starts_on: string;
+            /**
+             * Ends On
+             * Format: date
+             */
+            ends_on: string;
+            /** Falsification */
+            falsification: string;
+            /** Counter Plan */
+            counter_plan: string;
+            /** Owner */
+            owner: string;
+        };
+        /** ThesisEdit */
+        ThesisEdit: {
+            /** Actor */
+            actor: string;
+            /** Revision */
+            revision: number;
+            /** Reason */
+            reason: string;
+            thesis: components["schemas"]["Thesis"];
         };
         /** ValidationError */
         ValidationError: {
@@ -3826,6 +4119,266 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    signals_api_signals_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignalView"][];
+                };
+            };
+        };
+    };
+    create_api_signals_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignalCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignalView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    detail_api_signals__signal_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                signal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignalDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    edit_api_signals__signal_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                signal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ThesisEdit"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignalView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    link_api_signals__signal_id__evidence_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                signal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignalLink"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignalLinkView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unlink_api_signals__signal_id__evidence__link_id__unlink_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                signal_id: string;
+                link_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Mutation"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignalView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    search_api_signals__signal_id__searches_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                signal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SearchRecord"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignalView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    review_api_signals__signal_id__reviews_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                signal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignalReviewInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignalView"];
                 };
             };
             /** @description Validation Error */

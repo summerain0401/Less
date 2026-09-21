@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import type { Check, Detail, Item, Overview, Run, Source } from "./types";
 import { ValidationDesk } from "./ValidationDesk";
 import { EditorialInbox } from "./EditorialInbox";
+import { SignalWorkspace } from "./SignalWorkspace";
 import { BriefWorkspace } from "./BriefWorkspace";
 import "./style.css";
 
@@ -135,6 +136,7 @@ function App() {
             ["validation", "验收台", "04"],
             ["editorial", "编辑收件箱", "05"],
             ["briefs", "Brief 与 Today", "06"],
+            ["signals", "Signal", "07"],
           ].map(([id, label, n]) => (
             <button
               key={id}
@@ -235,6 +237,7 @@ function App() {
         {tab === "validation" && <ValidationDesk sources={sources} />}
         {tab === "editorial" && <EditorialInbox items={items} />}
         {tab === "briefs" && <BriefWorkspace />}
+        {tab === "signals" && <SignalWorkspace />}
         {tab === "items" && !selected && (
           <section>
             <div className="section-heading">
