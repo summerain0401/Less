@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import type { Check, Detail, Item, Overview, Run, Source } from "./types";
 import { ValidationDesk } from "./ValidationDesk";
 import { EditorialInbox } from "./EditorialInbox";
+import { BriefWorkspace } from "./BriefWorkspace";
 import "./style.css";
 
 const time = (value: string | null) =>
@@ -133,6 +134,7 @@ function App() {
             ["activity", "运行记录", "03"],
             ["validation", "验收台", "04"],
             ["editorial", "编辑收件箱", "05"],
+            ["briefs", "Brief 与 Today", "06"],
           ].map(([id, label, n]) => (
             <button
               key={id}
@@ -151,7 +153,7 @@ function App() {
         <div className="sidebar-footer">
           <span className="dot" /> 本地工作台
           <br />
-          <small>PHASE 1 / WEEK 1–2</small>
+          <small>PHASE 1 / WEEK 1–3</small>
         </div>
       </aside>
       <main>
@@ -167,7 +169,9 @@ function App() {
                     ? "让每一项进展都有依据"
                     : tab === "editorial"
                       ? "把材料变成可核查的事件"
-                      : "每一步都有记录"}
+                      : tab === "briefs"
+                        ? "每天只读值得看的内容"
+                        : "每一步都有记录"}
             </h1>
             <p>
               {tab === "items"
@@ -230,6 +234,7 @@ function App() {
         </section>
         {tab === "validation" && <ValidationDesk sources={sources} />}
         {tab === "editorial" && <EditorialInbox items={items} />}
+        {tab === "briefs" && <BriefWorkspace />}
         {tab === "items" && !selected && (
           <section>
             <div className="section-heading">

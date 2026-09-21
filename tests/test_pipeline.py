@@ -119,7 +119,7 @@ def test_invalid_ai_and_review_gate_preserve_history(database):
         assert db.get(NormalizeRun, rerun).raw_output
         assert db.scalar(select(HumanReview)).run_id == run_id
         assert db.get(NormalizeRun, run_id).status == "succeeded"
-    assert client.post("/api/briefs/publish", json={}).status_code == 404
+    assert client.post("/api/briefs/publish", json={}).status_code == 405
     response = client.get(f"/api/versions/{vid}")
     assert response.status_code == 200
     assert len(response.json()["reviews"]) == 1

@@ -706,6 +706,92 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/briefs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Briefs */
+        get: operations["briefs_api_briefs_get"];
+        put?: never;
+        /** Draft */
+        post: operations["draft_api_briefs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/briefs/{brief_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Detail */
+        get: operations["detail_api_briefs__brief_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/briefs/{brief_id}/actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Action */
+        post: operations["action_api_briefs__brief_id__actions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/today/note": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Edition Note */
+        post: operations["edition_note_api_today_note_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/today": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Today */
+        get: operations["today_api_today_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -772,6 +858,134 @@ export interface components {
             sample_count: number;
             /** Source Count */
             source_count: number;
+        };
+        /** BriefActionInput */
+        BriefActionInput: {
+            /** Actor */
+            actor: string;
+            /** Revision */
+            revision: number;
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "submit" | "approve" | "publish" | "withdraw" | "return_to_draft";
+            /** Reason */
+            reason: string;
+            /**
+             * Original Checked
+             * @default false
+             */
+            original_checked: boolean;
+        };
+        /** BriefContent */
+        BriefContent: {
+            /** Title */
+            title: string;
+            /** Why It Matters */
+            why_it_matters: string;
+            /** What Changed */
+            what_changed: string;
+            /** Our Take */
+            our_take: string;
+            /**
+             * Try It
+             * @default
+             */
+            try_it: string;
+            /** Facts */
+            facts: components["schemas"]["BriefFact"][];
+        };
+        /** BriefDetailView */
+        BriefDetailView: {
+            brief: components["schemas"]["BriefView"];
+            /** Versions */
+            versions: components["schemas"]["BriefVersionView"][];
+            /** Reviews */
+            reviews: components["schemas"]["BriefReviewView"][];
+            /** Current Eligible */
+            current_eligible: boolean;
+        };
+        /** BriefDraftInput */
+        BriefDraftInput: {
+            /** Actor */
+            actor: string;
+            /** Event Id */
+            event_id: string;
+            /** Event Revision */
+            event_revision: number;
+            /** Expected Revision */
+            expected_revision: number;
+            content: components["schemas"]["BriefContent"];
+            /** Reason */
+            reason: string;
+        };
+        /** BriefFact */
+        BriefFact: {
+            /** Claim Id */
+            claim_id: string;
+            /** Evidence Ids */
+            evidence_ids: string[];
+        };
+        /** BriefReviewView */
+        BriefReviewView: {
+            /** Id */
+            id: string;
+            /** Revision */
+            revision: number;
+            /** Action */
+            action: string;
+            /** Actor */
+            actor: string;
+            /** Reason */
+            reason: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** BriefVersionView */
+        BriefVersionView: {
+            /** Id */
+            id: string;
+            /** Revision */
+            revision: number;
+            /** Event Revision */
+            event_revision: number;
+            /** Content */
+            content: {
+                [key: string]: unknown;
+            };
+            /** Sources */
+            sources: {
+                [key: string]: unknown;
+            }[];
+            /** Actor */
+            actor: string;
+            /** Reason */
+            reason: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** BriefView */
+        BriefView: {
+            /** Id */
+            id: string;
+            /** Event Id */
+            event_id: string;
+            /** Revision */
+            revision: number;
+            /** Status */
+            status: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
         };
         /** BudgetView */
         BudgetView: {
@@ -1070,6 +1284,13 @@ export interface components {
             runs: components["schemas"]["RunView"][];
             /** Reviews */
             reviews: components["schemas"]["less__api__ReviewView"][];
+        };
+        /** EditionNote */
+        EditionNote: {
+            /** Actor */
+            actor: string;
+            /** Note */
+            note: string;
         };
         /** Entity */
         Entity: {
@@ -3422,6 +3643,189 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LabelView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    briefs_api_briefs_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BriefView"][];
+                };
+            };
+        };
+    };
+    draft_api_briefs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BriefDraftInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BriefView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    detail_api_briefs__brief_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                brief_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BriefDetailView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    action_api_briefs__brief_id__actions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                brief_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BriefActionInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BriefView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    edition_note_api_today_note_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditionNote"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    today_api_today_get: {
+        parameters: {
+            query?: {
+                day?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

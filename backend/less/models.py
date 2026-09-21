@@ -295,3 +295,57 @@ class ClusterAuditLabel(Base):
     reason: Mapped[str] = mapped_column(Text)
     original_checked: Mapped[bool]
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class Brief(Base):
+    __tablename__ = "briefs"
+    __table_args__ = (UniqueConstraint("event_id"),)
+    id: Mapped[str] = mapped_column(primary_key=True, default=uid)
+    event_id: Mapped[str] = mapped_column(ForeignKey("editorial_events.id"))
+    revision: Mapped[int] = mapped_column(default=1)
+    status: Mapped[str] = mapped_column(default="draft")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class BriefVersion(Base):
+    __tablename__ = "brief_versions"
+    __table_args__ = (UniqueConstraint("brief_id", "revision"),)
+    id: Mapped[str] = mapped_column(primary_key=True, default=uid)
+    brief_id: Mapped[str] = mapped_column(ForeignKey("briefs.id"))
+    revision: Mapped[int]
+    event_revision: Mapped[int]
+    content: Mapped[dict] = mapped_column(JSONB)
+    sources: Mapped[list] = mapped_column(JSONB)
+    actor: Mapped[str]
+    reason: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class BriefReview(Base):
+    __tablename__ = "brief_reviews"
+    id: Mapped[str] = mapped_column(primary_key=True, default=uid)
+    brief_id: Mapped[str] = mapped_column(ForeignKey("briefs.id"))
+    revision: Mapped[int]
+    action: Mapped[str]
+    actor: Mapped[str]
+    reason: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class TodayEdition(Base):
+    __tablename__ = "today_editions"
+    id: Mapped[str] = mapped_column(primary_key=True)  # local YYYY-MM-DD
+    note: Mapped[str] = mapped_column(Text)
+    actor: Mapped[str]
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class BriefPublication(Base):
+    __tablename__ = "brief_publications"
+    __table_args__ = (UniqueConstraint("edition_id", "brief_id"),)
+    id: Mapped[str] = mapped_column(primary_key=True, default=uid)
+    edition_id: Mapped[str] = mapped_column(ForeignKey("today_editions.id"))
+    brief_id: Mapped[str] = mapped_column(ForeignKey("briefs.id"))
+    revision: Mapped[int]
+    actor: Mapped[str]
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)

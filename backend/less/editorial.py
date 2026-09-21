@@ -4,6 +4,8 @@ from sqlalchemy import select
 
 from less.models import (
     AuditLog,
+    Brief,
+    BriefReview,
     EditorialEvent,
     EditorialReview,
     EventClaim,
@@ -40,6 +42,18 @@ def invalidate(db, event, actor, action, detail):
     event.revision += 1
     event.value_status = event.quality_status = event.decision = "pending"
     event.updated_at = now()
+    for brief in db.scalars(select(Brief).where(Brief.event_id == event.id).with_for_update()):
+        if brief.status != "withdrawn":
+            brief.status = "needs_review"
+            db.add(
+                BriefReview(
+                    brief_id=brief.id,
+                    revision=brief.revision,
+                    action="source_changed",
+                    actor=actor,
+                    reason=f"事件修订 {event.revision}: {action}；{detail.get('reason', '')}",
+                )
+            )
     audit(db, event, actor, action, detail)
 
 

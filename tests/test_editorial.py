@@ -138,8 +138,8 @@ def test_evidence_location_membership_and_verification_are_required(database):
     e.post("/decision", {"status": "selected"})
     assert e.detail()["event"]["decision"] == "selected"
     assert e.detail()["verified_source_roots"] == 1
-    # No publishing route has been introduced as a shortcut around future Brief approval.
-    assert e.client.post("/api/briefs/publish", json={}).status_code == 404
+    # No unversioned publication shortcut bypasses the explicit Brief review workflow.
+    assert e.client.post("/api/briefs/publish", json={}).status_code == 405
 
 
 def test_context_is_not_support_and_counter_evidence_cannot_be_ignored(database):

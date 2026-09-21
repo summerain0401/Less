@@ -1994,6 +1994,251 @@
           }
         }
       }
+    },
+    "/api/briefs": {
+      "get": {
+        "tags": [
+          "Brief and Today"
+        ],
+        "summary": "Briefs",
+        "operationId": "briefs_api_briefs_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/BriefView"
+                  },
+                  "type": "array",
+                  "title": "Response Briefs Api Briefs Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Brief and Today"
+        ],
+        "summary": "Draft",
+        "operationId": "draft_api_briefs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BriefDraftInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BriefView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/briefs/{brief_id}": {
+      "get": {
+        "tags": [
+          "Brief and Today"
+        ],
+        "summary": "Detail",
+        "operationId": "detail_api_briefs__brief_id__get",
+        "parameters": [
+          {
+            "name": "brief_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Brief Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BriefDetailView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/briefs/{brief_id}/actions": {
+      "post": {
+        "tags": [
+          "Brief and Today"
+        ],
+        "summary": "Action",
+        "operationId": "action_api_briefs__brief_id__actions_post",
+        "parameters": [
+          {
+            "name": "brief_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Brief Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BriefActionInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BriefView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/today/note": {
+      "post": {
+        "tags": [
+          "Brief and Today"
+        ],
+        "summary": "Edition Note",
+        "operationId": "edition_note_api_today_note_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditionNote"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/today": {
+      "get": {
+        "tags": [
+          "Brief and Today"
+        ],
+        "summary": "Today",
+        "operationId": "today_api_today_get",
+        "parameters": [
+          {
+            "name": "day",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Day"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2174,6 +2419,333 @@
           "source_count"
         ],
         "title": "BatchView"
+      },
+      "BriefActionInput": {
+        "properties": {
+          "actor": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Actor"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Revision"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "submit",
+              "approve",
+              "publish",
+              "withdraw",
+              "return_to_draft"
+            ],
+            "title": "Action"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Reason"
+          },
+          "original_checked": {
+            "type": "boolean",
+            "title": "Original Checked",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "actor",
+          "revision",
+          "action",
+          "reason"
+        ],
+        "title": "BriefActionInput"
+      },
+      "BriefContent": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "why_it_matters": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Why It Matters"
+          },
+          "what_changed": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "What Changed"
+          },
+          "our_take": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Our Take"
+          },
+          "try_it": {
+            "type": "string",
+            "maxLength": 5000,
+            "title": "Try It",
+            "default": ""
+          },
+          "facts": {
+            "items": {
+              "$ref": "#/components/schemas/BriefFact"
+            },
+            "type": "array",
+            "maxItems": 30,
+            "minItems": 1,
+            "title": "Facts"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "title",
+          "why_it_matters",
+          "what_changed",
+          "our_take",
+          "facts"
+        ],
+        "title": "BriefContent"
+      },
+      "BriefDetailView": {
+        "properties": {
+          "brief": {
+            "$ref": "#/components/schemas/BriefView"
+          },
+          "versions": {
+            "items": {
+              "$ref": "#/components/schemas/BriefVersionView"
+            },
+            "type": "array",
+            "title": "Versions"
+          },
+          "reviews": {
+            "items": {
+              "$ref": "#/components/schemas/BriefReviewView"
+            },
+            "type": "array",
+            "title": "Reviews"
+          },
+          "current_eligible": {
+            "type": "boolean",
+            "title": "Current Eligible"
+          }
+        },
+        "type": "object",
+        "required": [
+          "brief",
+          "versions",
+          "reviews",
+          "current_eligible"
+        ],
+        "title": "BriefDetailView"
+      },
+      "BriefDraftInput": {
+        "properties": {
+          "actor": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Actor"
+          },
+          "event_id": {
+            "type": "string",
+            "title": "Event Id"
+          },
+          "event_revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Event Revision"
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Revision"
+          },
+          "content": {
+            "$ref": "#/components/schemas/BriefContent"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "actor",
+          "event_id",
+          "event_revision",
+          "expected_revision",
+          "content",
+          "reason"
+        ],
+        "title": "BriefDraftInput"
+      },
+      "BriefFact": {
+        "properties": {
+          "claim_id": {
+            "type": "string",
+            "title": "Claim Id"
+          },
+          "evidence_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Evidence Ids"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "claim_id",
+          "evidence_ids"
+        ],
+        "title": "BriefFact"
+      },
+      "BriefReviewView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "actor": {
+            "type": "string",
+            "title": "Actor"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "revision",
+          "action",
+          "actor",
+          "reason",
+          "created_at"
+        ],
+        "title": "BriefReviewView"
+      },
+      "BriefVersionView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "event_revision": {
+            "type": "integer",
+            "title": "Event Revision"
+          },
+          "content": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Content"
+          },
+          "sources": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Sources"
+          },
+          "actor": {
+            "type": "string",
+            "title": "Actor"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "revision",
+          "event_revision",
+          "content",
+          "sources",
+          "actor",
+          "reason",
+          "created_at"
+        ],
+        "title": "BriefVersionView"
+      },
+      "BriefView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "event_id": {
+            "type": "string",
+            "title": "Event Id"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "event_id",
+          "revision",
+          "status",
+          "created_at"
+        ],
+        "title": "BriefView"
       },
       "BudgetView": {
         "properties": {
@@ -2973,6 +3545,29 @@
           "reviews"
         ],
         "title": "DetailView"
+      },
+      "EditionNote": {
+        "properties": {
+          "actor": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Actor"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Note"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "actor",
+          "note"
+        ],
+        "title": "EditionNote"
       },
       "Entity": {
         "properties": {
