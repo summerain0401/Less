@@ -186,6 +186,8 @@ class EditorialEvent(Base):
     happened_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     event_version: Mapped[str | None]
     scope: Mapped[str] = mapped_column(Text)
+    lifecycle: Mapped[str] = mapped_column(default="active", server_default="active")
+    redirected_to: Mapped[str | None] = mapped_column(ForeignKey("editorial_events.id"))
     revision: Mapped[int] = mapped_column(default=1)
     value_status: Mapped[str] = mapped_column(default="pending")
     quality_status: Mapped[str] = mapped_column(default="pending")
@@ -240,3 +242,19 @@ class EditorialReview(Base):
     actor: Mapped[str]
     detail: Mapped[dict] = mapped_column(JSONB)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class ClusterOperation(Base):
+    __tablename__ = "cluster_operations"
+    id: Mapped[str] = mapped_column(primary_key=True, default=uid)
+    kind: Mapped[str]
+    actor: Mapped[str]
+    reason: Mapped[str] = mapped_column(Text)
+    before: Mapped[dict] = mapped_column(JSONB)
+    after_revisions: Mapped[dict] = mapped_column(JSONB)
+    created_event_ids: Mapped[list] = mapped_column(JSONB, default=list)
+    status: Mapped[str] = mapped_column(default="applied")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    restored_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    restored_by: Mapped[str | None]
+    restore_reason: Mapped[str | None] = mapped_column(Text)

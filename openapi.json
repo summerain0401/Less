@@ -949,6 +949,27 @@
         }
       }
     },
+    "/api/editorial/cluster-suggestions": {
+      "get": {
+        "tags": [
+          "Editorial Inbox"
+        ],
+        "summary": "Cluster Suggestions",
+        "operationId": "cluster_suggestions_api_editorial_cluster_suggestions_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClusterSuggestionsView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/editorial/events": {
       "get": {
         "tags": [
@@ -999,6 +1020,16 @@
               "type": "integer",
               "default": 50,
               "title": "Limit"
+            }
+          },
+          {
+            "name": "include_archived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Include Archived"
             }
           }
         ],
@@ -1590,6 +1621,212 @@
           }
         }
       }
+    },
+    "/api/editorial/events/{event_id}/claims/{claim_id}": {
+      "patch": {
+        "tags": [
+          "Editorial Inbox"
+        ],
+        "summary": "Edit Claim",
+        "operationId": "edit_claim_api_editorial_events__event_id__claims__claim_id__patch",
+        "parameters": [
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Event Id"
+            }
+          },
+          {
+            "name": "claim_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Claim Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClaimInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClaimView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/editorial/clusters/merge": {
+      "post": {
+        "tags": [
+          "Editorial Inbox"
+        ],
+        "summary": "Merge Events",
+        "operationId": "merge_events_api_editorial_clusters_merge_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MergeInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClusterOperationView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/editorial/events/{event_id}/split": {
+      "post": {
+        "tags": [
+          "Editorial Inbox"
+        ],
+        "summary": "Split Event",
+        "operationId": "split_event_api_editorial_events__event_id__split_post",
+        "parameters": [
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Event Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SplitInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClusterOperationView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/editorial/clusters/{operation_id}/restore": {
+      "post": {
+        "tags": [
+          "Editorial Inbox"
+        ],
+        "summary": "Restore Cluster",
+        "operationId": "restore_cluster_api_editorial_clusters__operation_id__restore_post",
+        "parameters": [
+          {
+            "name": "operation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Operation Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RestoreInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClusterOperationView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2029,6 +2266,192 @@
         ],
         "title": "ClaimView"
       },
+      "ClusterOperationView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "actor": {
+            "type": "string",
+            "title": "Actor"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "after_revisions": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "After Revisions"
+          },
+          "created_event_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Created Event Ids"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "restored_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Restored At"
+          },
+          "restored_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Restored By"
+          },
+          "restore_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Restore Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "actor",
+          "reason",
+          "after_revisions",
+          "created_event_ids",
+          "status",
+          "created_at",
+          "restored_at",
+          "restored_by",
+          "restore_reason"
+        ],
+        "title": "ClusterOperationView"
+      },
+      "ClusterPair": {
+        "properties": {
+          "left": {
+            "$ref": "#/components/schemas/SuggestedEvent"
+          },
+          "right": {
+            "$ref": "#/components/schemas/SuggestedEvent"
+          },
+          "score": {
+            "type": "number",
+            "title": "Score"
+          },
+          "suggestion": {
+            "type": "string",
+            "title": "Suggestion"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reasons"
+          },
+          "conflicts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Conflicts"
+          },
+          "shared_version_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Shared Version Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "left",
+          "right",
+          "score",
+          "suggestion",
+          "reasons",
+          "conflicts",
+          "shared_version_ids"
+        ],
+        "title": "ClusterPair"
+      },
+      "ClusterSuggestionsView": {
+        "properties": {
+          "method": {
+            "type": "string",
+            "title": "Method"
+          },
+          "considered_events": {
+            "type": "integer",
+            "title": "Considered Events"
+          },
+          "total_events": {
+            "type": "integer",
+            "title": "Total Events"
+          },
+          "total_pairs": {
+            "type": "integer",
+            "title": "Total Pairs"
+          },
+          "pairs": {
+            "items": {
+              "$ref": "#/components/schemas/ClusterPair"
+            },
+            "type": "array",
+            "title": "Pairs"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Limitations"
+          }
+        },
+        "type": "object",
+        "required": [
+          "method",
+          "considered_events",
+          "total_events",
+          "total_pairs",
+          "pairs",
+          "limitations"
+        ],
+        "title": "ClusterSuggestionsView"
+      },
       "CountsView": {
         "properties": {
           "sources": {
@@ -2387,6 +2810,13 @@
           "verified_source_roots": {
             "type": "integer",
             "title": "Verified Source Roots"
+          },
+          "cluster_operations": {
+            "items": {
+              "$ref": "#/components/schemas/ClusterOperationView"
+            },
+            "type": "array",
+            "title": "Cluster Operations"
           }
         },
         "type": "object",
@@ -2397,9 +2827,78 @@
           "evidence",
           "reviews",
           "history",
-          "verified_source_roots"
+          "verified_source_roots",
+          "cluster_operations"
         ],
         "title": "EventDetail"
+      },
+      "EventFields": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "subject": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Subject"
+          },
+          "action": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Action"
+          },
+          "object": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Object"
+          },
+          "happened_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Happened At"
+          },
+          "event_version": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Version"
+          },
+          "scope": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Scope"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "title",
+          "subject",
+          "action",
+          "object",
+          "scope"
+        ],
+        "title": "EventFields"
       },
       "EventInput": {
         "properties": {
@@ -2475,6 +2974,25 @@
           "scope"
         ],
         "title": "EventInput"
+      },
+      "EventRef": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Revision"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "revision"
+        ],
+        "title": "EventRef"
       },
       "EventUpdate": {
         "properties": {
@@ -2613,6 +3131,21 @@
             "type": "string",
             "title": "Scope"
           },
+          "lifecycle": {
+            "type": "string",
+            "title": "Lifecycle"
+          },
+          "redirected_to": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Redirected To"
+          },
           "revision": {
             "type": "integer",
             "title": "Revision"
@@ -2650,6 +3183,8 @@
           "happened_at",
           "event_version",
           "scope",
+          "lifecycle",
+          "redirected_to",
           "revision",
           "value_status",
           "quality_status",
@@ -3287,6 +3822,44 @@
         ],
         "title": "MemberView"
       },
+      "MergeInput": {
+        "properties": {
+          "actor": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Actor"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/EventRef"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "minItems": 2,
+            "title": "Events"
+          },
+          "target_id": {
+            "type": "string",
+            "title": "Target Id"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "actor",
+          "events",
+          "target_id",
+          "reason"
+        ],
+        "title": "MergeInput"
+      },
       "Mutation": {
         "properties": {
           "actor": {
@@ -3577,6 +4150,29 @@
           "accuracy"
         ],
         "title": "QualityView"
+      },
+      "RestoreInput": {
+        "properties": {
+          "actor": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Actor"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "actor",
+          "reason"
+        ],
+        "title": "RestoreInput"
       },
       "ReviewRequest": {
         "properties": {
@@ -4216,6 +4812,55 @@
         ],
         "title": "SourceView"
       },
+      "SplitInput": {
+        "properties": {
+          "actor": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Actor"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Revision"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Reason"
+          },
+          "target": {
+            "$ref": "#/components/schemas/EventFields"
+          },
+          "member_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Member Ids"
+          },
+          "claim_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Claim Ids"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "actor",
+          "revision",
+          "reason",
+          "target",
+          "member_ids"
+        ],
+        "title": "SplitInput"
+      },
       "StopInput": {
         "properties": {
           "read_count": {
@@ -4249,6 +4894,30 @@
           "note"
         ],
         "title": "StopInput"
+      },
+      "SuggestedEvent": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Revision"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "revision",
+          "title"
+        ],
+        "title": "SuggestedEvent"
       },
       "ValidationError": {
         "properties": {

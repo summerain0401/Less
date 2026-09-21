@@ -1,145 +1,19 @@
 import { useCallback, useEffect, useState } from "react";
-import type { components } from "./api.generated";
+import {
+  EditorForm,
+  request,
+  states,
+  reason,
+  skeleton,
+} from "./editorialForms";
+import type { S, EventDetail } from "./editorialForms";
+import { EventClusterTools, ClusterSuggestions } from "./ClusterTools";
 import type { Detail, Item } from "./types";
-
-type S = components["schemas"];
-type EventDetail = S["EventDetail"];
-type Field = {
-  key: string;
-  label: string;
-  options?: [string, string][];
-  optional?: boolean;
-  multiline?: boolean;
-  initial?: string;
-};
-const states: Record<string, string> = {
-  pending: "待判断",
-  passed: "通过",
-  rejected: "驳回",
-  selected: "入选",
-  deferred: "待核实",
-  evidence_only: "仅存证",
-  observe: "继续观察",
-  unchecked: "未核验",
-  verified: "已核验",
-  needs_review: "需复核",
-  supporting: "支持",
-  counter: "反面 / 限制",
-  context: "背景",
-  fact_candidate: "待核验事实",
-  reported_claim: "有归属的主张",
-  interpretation: "解释 / 推断",
-};
-const reason: Field = { key: "reason", label: "本次操作依据", multiline: true };
-const skeleton: Field[] = [
-  { key: "title", label: "事件标题" },
-  { key: "subject", label: "主体 · 谁" },
-  { key: "action", label: "动作 · 做了什么" },
-  { key: "object", label: "对象 · 针对什么" },
-  { key: "event_version", label: "产品版本或范围标识（可空）", optional: true },
-  { key: "scope", label: "适用范围、时间与已知限制", multiline: true },
-];
-
-async function request<T>(
-  path: string,
-  body?: unknown,
-  method = "POST",
-): Promise<T> {
-  const response = await fetch(
-    `/api${path}`,
-    body === undefined
-      ? {}
-      : {
-          method,
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        },
-  );
-  const data = await response.json();
-  if (!response.ok)
-    throw new Error(
-      typeof data.detail === "string" ? data.detail : "请检查必填项与内容格式",
-    );
-  return data;
-}
-
-function EditorForm({
-  fields,
-  label,
-  disabled,
-  submit,
-}: {
-  fields: Field[];
-  label: string;
-  disabled: boolean;
-  submit: (values: Record<string, string>) => Promise<void>;
-}) {
-  const [values, setValues] = useState<Record<string, string>>(() =>
-    Object.fromEntries(
-      fields.map((f) => [f.key, f.initial ?? f.options?.[0]?.[0] ?? ""]),
-    ),
-  );
-  return (
-    <form
-      className="validation-form"
-      onSubmit={(e) => {
-        e.preventDefault();
-        void submit(values);
-      }}
-    >
-      {fields.map((f) => (
-        <label key={f.key}>
-          {f.label}
-          {f.options ? (
-            <select
-              aria-label={f.label}
-              value={values[f.key]}
-              onChange={(e) =>
-                setValues({ ...values, [f.key]: e.target.value })
-              }
-            >
-              {f.options.map(([value, label]) => (
-                <option value={value} key={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          ) : f.multiline ? (
-            <textarea
-              aria-label={f.label}
-              required={!f.optional}
-              value={values[f.key]}
-              onChange={(e) =>
-                setValues({ ...values, [f.key]: e.target.value })
-              }
-            />
-          ) : (
-            <input
-              aria-label={f.label}
-              required={!f.optional}
-              value={values[f.key]}
-              onChange={(e) =>
-                setValues({ ...values, [f.key]: e.target.value })
-              }
-            />
-          )}
-        </label>
-      ))}
-      <button
-        disabled={
-          disabled || fields.some((f) => !f.optional && !values[f.key]?.trim())
-        }
-        type="submit"
-      >
-        {label}
-      </button>
-    </form>
-  );
-}
 
 export function EditorialInbox({ items }: { items: Item[] }) {
   const [actor, setActor] = useState("");
   const [filter, setFilter] = useState("");
+  const [includeArchived, setIncludeArchived] = useState(false);
   const [offset, setOffset] = useState(0);
   const [inbox, setInbox] = useState<S["InboxView"] | null>(null);
   const [selected, setSelected] = useState("");
@@ -147,15 +21,19 @@ export function EditorialInbox({ items }: { items: Item[] }) {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+  function openEvent(id: string) {
+    setSelected(id);
+    setDetail(null);
+  }
   const load = useCallback(async () => {
     const [list, current] = await Promise.all([
       request<S["InboxView"]>(
-        `/editorial/events?offset=${offset}${filter ? `&decision=${filter}` : ""}`,
+        `/editorial/events?offset=${offset}&include_archived=${includeArchived}${filter ? `&decision=${filter}` : ""}`,
       ),
       selected ? request<EventDetail>(`/editorial/events/${selected}`) : null,
     ]);
     return { list, current };
-  }, [selected, filter, offset]);
+  }, [selected, filter, offset, includeArchived]);
   useEffect(() => {
     let active = true;
     load()
@@ -240,11 +118,13 @@ export function EditorialInbox({ items }: { items: Item[] }) {
               actor={actor}
               busy={busy}
               act={act}
+              onOpen={openEvent}
             />
           )}
         </>
       ) : (
         <>
+          <ClusterSuggestions onOpen={openEvent} />
           <details className="work-panel">
             <summary>新建事件骨架</summary>
             <EditorForm
@@ -292,6 +172,17 @@ export function EditorialInbox({ items }: { items: Item[] }) {
               ))}
             </select>
           </label>
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={includeArchived}
+              onChange={(e) => {
+                setIncludeArchived(e.target.checked);
+                setOffset(0);
+              }}
+            />
+            显示已合并和归档的历史事件
+          </label>
           {!inbox?.events.length ? (
             <div className="empty">
               <h3>先写清楚：谁，做了什么</h3>
@@ -317,6 +208,13 @@ export function EditorialInbox({ items }: { items: Item[] }) {
                     </span>
                   </div>
                   <h3>{event.title}</h3>
+                  {event.lifecycle && event.lifecycle !== "active" && (
+                    <p className="muted">
+                      {event.lifecycle === "merged"
+                        ? "已合并，保留原事件去向"
+                        : "已归档，保留恢复记录"}
+                    </p>
+                  )}
                   <p className="muted">
                     {event.subject} · {event.action} · {event.object}
                   </p>
@@ -355,10 +253,12 @@ type EditorProps = {
   actor: string;
   busy: boolean;
   act: (fn: () => Promise<unknown>) => Promise<void>;
+  onOpen: (id: string) => void;
 };
-function EventEditor({ detail, items, actor, busy, act }: EditorProps) {
+function EventEditor({ detail, items, actor, busy, act, onOpen }: EditorProps) {
   const { event } = detail;
-  const disabled = busy || !actor.trim();
+  const disabled =
+    busy || !actor.trim() || (event.lifecycle ?? "active") !== "active";
   const base = `/editorial/events/${event.id}`;
   function post(
     path: string,
@@ -373,6 +273,60 @@ function EventEditor({ detail, items, actor, busy, act }: EditorProps) {
       ),
     );
   }
+  if ((event.lifecycle ?? "active") !== "active")
+    return (
+      <div className="event-editor">
+        <h2>{event.title}</h2>
+        <p className="muted">
+          此事件{event.lifecycle === "merged" ? "已合并" : "已归档"}
+          ，旧记录保留供追溯。
+        </p>
+        {event.redirected_to && (
+          <button onClick={() => onOpen(event.redirected_to!)}>
+            打开映射到的事件
+          </button>
+        )}
+        <EventClusterTools
+          detail={detail}
+          actor={actor}
+          busy={busy}
+          act={act}
+          onOpen={onOpen}
+        />
+        <details className="work-panel">
+          <summary>原事件审核与更正记录</summary>
+          {detail.reviews.map((r) => (
+            <div className="session-card" key={r.id}>
+              <p>
+                {r.actor} · 修订 {r.revision} ·{" "}
+                {new Date(r.created_at).toLocaleString("zh-CN")}
+              </p>
+              <pre>
+                {JSON.stringify(
+                  { gate: r.gate, status: r.status, detail: r.detail },
+                  null,
+                  2,
+                )}
+              </pre>
+            </div>
+          ))}
+          {detail.history.map((h) => (
+            <div className="session-card" key={h.id}>
+              <p>
+                {h.actor} · {new Date(h.created_at).toLocaleString("zh-CN")}
+              </p>
+              <pre>
+                {JSON.stringify(
+                  { action: h.action, detail: h.detail },
+                  null,
+                  2,
+                )}
+              </pre>
+            </div>
+          ))}
+        </details>
+      </div>
+    );
   return (
     <div className="event-editor">
       <h2>{event.title}</h2>
@@ -390,6 +344,13 @@ function EventEditor({ detail, items, actor, busy, act }: EditorProps) {
           ? new Date(event.happened_at).toLocaleString("zh-CN")
           : "未知"}
       </p>
+      <EventClusterTools
+        detail={detail}
+        actor={actor}
+        busy={busy}
+        act={act}
+        onOpen={onOpen}
+      />
       <details className="work-panel">
         <summary>修正事件骨架</summary>
         <EditorForm
@@ -479,6 +440,48 @@ function EventEditor({ detail, items, actor, busy, act }: EditorProps) {
               {states[c.kind]} ·{" "}
               {c.critical ? "影响标题或结论的关键陈述" : "辅助陈述"}
             </p>
+            <details>
+              <summary>修正这条陈述</summary>
+              <EditorForm
+                fields={[
+                  {
+                    key: "text",
+                    label: "修正后的陈述",
+                    multiline: true,
+                    initial: c.text,
+                  },
+                  {
+                    key: "kind",
+                    label: "修正后的陈述类型",
+                    initial: c.kind,
+                    options: [
+                      ["reported_claim", "有归属的主张"],
+                      ["fact_candidate", "待核验事实"],
+                      ["interpretation", "解释 / 推断"],
+                    ],
+                  },
+                  {
+                    key: "critical",
+                    label: "是否影响标题或结论",
+                    initial: String(c.critical),
+                    options: [
+                      ["true", "关键陈述"],
+                      ["false", "辅助陈述"],
+                    ],
+                  },
+                  reason,
+                ]}
+                label="保存陈述修正"
+                disabled={disabled}
+                submit={(v) =>
+                  post(
+                    `/claims/${c.id}`,
+                    { ...v, critical: v.critical === "true" },
+                    "PATCH",
+                  )
+                }
+              />
+            </details>
             {detail.evidence
               .filter((e) => e.claim_id === c.id)
               .map((e) => (

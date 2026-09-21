@@ -750,6 +750,9 @@ footer {
   overflow-wrap: anywhere;
   min-width: 0;
 }
+.cluster-conflicts {
+  color: #9c5335;
+}
 @media (max-width: 760px) {
   .editorial-gates {
     grid-template-columns: 1fr;

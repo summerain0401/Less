@@ -397,6 +397,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/editorial/cluster-suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Cluster Suggestions */
+        get: operations["cluster_suggestions_api_editorial_cluster_suggestions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/editorial/events": {
         parameters: {
             query?: never;
@@ -569,6 +586,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/editorial/events/{event_id}/claims/{claim_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edit Claim */
+        patch: operations["edit_claim_api_editorial_events__event_id__claims__claim_id__patch"];
+        trace?: never;
+    };
+    "/api/editorial/clusters/merge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Merge Events */
+        post: operations["merge_events_api_editorial_clusters_merge_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/editorial/events/{event_id}/split": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Split Event */
+        post: operations["split_event_api_editorial_events__event_id__split_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/editorial/clusters/{operation_id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore Cluster */
+        post: operations["restore_cluster_api_editorial_clusters__operation_id__restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -735,6 +820,66 @@ export interface components {
             /** Critical */
             critical: boolean;
         };
+        /** ClusterOperationView */
+        ClusterOperationView: {
+            /** Id */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Actor */
+            actor: string;
+            /** Reason */
+            reason: string;
+            /** After Revisions */
+            after_revisions: {
+                [key: string]: number;
+            };
+            /** Created Event Ids */
+            created_event_ids: string[];
+            /** Status */
+            status: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Restored At */
+            restored_at: string | null;
+            /** Restored By */
+            restored_by: string | null;
+            /** Restore Reason */
+            restore_reason: string | null;
+        };
+        /** ClusterPair */
+        ClusterPair: {
+            left: components["schemas"]["SuggestedEvent"];
+            right: components["schemas"]["SuggestedEvent"];
+            /** Score */
+            score: number;
+            /** Suggestion */
+            suggestion: string;
+            /** Reasons */
+            reasons: string[];
+            /** Conflicts */
+            conflicts: string[];
+            /** Shared Version Ids */
+            shared_version_ids: string[];
+        };
+        /** ClusterSuggestionsView */
+        ClusterSuggestionsView: {
+            /** Method */
+            method: string;
+            /** Considered Events */
+            considered_events: number;
+            /** Total Events */
+            total_events: number;
+            /** Total Pairs */
+            total_pairs: number;
+            /** Pairs */
+            pairs: components["schemas"]["ClusterPair"][];
+            /** Limitations */
+            limitations: string[];
+        };
         /** CountsView */
         CountsView: {
             /** Sources */
@@ -869,6 +1014,25 @@ export interface components {
             history: components["schemas"]["HistoryView"][];
             /** Verified Source Roots */
             verified_source_roots: number;
+            /** Cluster Operations */
+            cluster_operations: components["schemas"]["ClusterOperationView"][];
+        };
+        /** EventFields */
+        EventFields: {
+            /** Title */
+            title: string;
+            /** Subject */
+            subject: string;
+            /** Action */
+            action: string;
+            /** Object */
+            object: string;
+            /** Happened At */
+            happened_at?: string | null;
+            /** Event Version */
+            event_version?: string | null;
+            /** Scope */
+            scope: string;
         };
         /** EventInput */
         EventInput: {
@@ -888,6 +1052,13 @@ export interface components {
             event_version?: string | null;
             /** Scope */
             scope: string;
+        };
+        /** EventRef */
+        EventRef: {
+            /** Id */
+            id: string;
+            /** Revision */
+            revision: number;
         };
         /** EventUpdate */
         EventUpdate: {
@@ -930,6 +1101,10 @@ export interface components {
             event_version: string | null;
             /** Scope */
             scope: string;
+            /** Lifecycle */
+            lifecycle: string;
+            /** Redirected To */
+            redirected_to: string | null;
             /** Revision */
             revision: number;
             /** Value Status */
@@ -1181,6 +1356,17 @@ export interface components {
                 [key: string]: unknown;
             }[];
         };
+        /** MergeInput */
+        MergeInput: {
+            /** Actor */
+            actor: string;
+            /** Events */
+            events: components["schemas"]["EventRef"][];
+            /** Target Id */
+            target_id: string;
+            /** Reason */
+            reason: string;
+        };
         /** Mutation */
         Mutation: {
             /** Actor */
@@ -1279,6 +1465,13 @@ export interface components {
             incorrect_fields: number;
             /** Accuracy */
             accuracy: number | null;
+        };
+        /** RestoreInput */
+        RestoreInput: {
+            /** Actor */
+            actor: string;
+            /** Reason */
+            reason: string;
         };
         /** ReviewRequest */
         ReviewRequest: {
@@ -1485,6 +1678,20 @@ export interface components {
             /** Last Success At */
             last_success_at: string | null;
         };
+        /** SplitInput */
+        SplitInput: {
+            /** Actor */
+            actor: string;
+            /** Revision */
+            revision: number;
+            /** Reason */
+            reason: string;
+            target: components["schemas"]["EventFields"];
+            /** Member Ids */
+            member_ids: string[];
+            /** Claim Ids */
+            claim_ids?: string[];
+        };
         /** StopInput */
         StopInput: {
             /** Read Count */
@@ -1495,6 +1702,15 @@ export interface components {
             selected_count: number;
             /** Note */
             note: string;
+        };
+        /** SuggestedEvent */
+        SuggestedEvent: {
+            /** Id */
+            id: string;
+            /** Revision */
+            revision: number;
+            /** Title */
+            title: string;
         };
         /** ValidationError */
         ValidationError: {
@@ -2361,12 +2577,33 @@ export interface operations {
             };
         };
     };
+    cluster_suggestions_api_editorial_cluster_suggestions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClusterSuggestionsView"];
+                };
+            };
+        };
+    };
     events_api_editorial_events_get: {
         parameters: {
             query?: {
                 decision?: ("pending" | "selected" | "deferred" | "rejected" | "evidence_only" | "observe") | null;
                 offset?: number;
                 limit?: number;
+                include_archived?: boolean;
             };
             header?: never;
             path?: never;
@@ -2762,6 +2999,145 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["less__editorial_api__ReviewView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    edit_claim_api_editorial_events__event_id__claims__claim_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                event_id: string;
+                claim_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClaimInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClaimView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    merge_events_api_editorial_clusters_merge_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MergeInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClusterOperationView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    split_event_api_editorial_events__event_id__split_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SplitInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClusterOperationView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restore_cluster_api_editorial_clusters__operation_id__restore_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                operation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RestoreInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClusterOperationView"];
                 };
             };
             /** @description Validation Error */

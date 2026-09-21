@@ -2,13 +2,15 @@ from datetime import datetime
 from typing import Literal
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 from sqlalchemy import func, select
 
-from less import editorial
+from less import clustering, editorial
+from less.cluster_suggestions import suggestions
 from less.db import Session
 from less.models import (
     AuditLog,
+    ClusterOperation,
     EditorialEvent,
     EditorialReview,
     EventClaim,
@@ -32,14 +34,19 @@ class Mutation(Input):
     reason: str = Field(min_length=1, max_length=5000)
 
 
-class EventInput(Input):
+class EventFields(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     title: str = Field(min_length=1, max_length=500)
     subject: str = Field(min_length=1, max_length=500)
     action: str = Field(min_length=1, max_length=500)
     object: str = Field(min_length=1, max_length=2000)
-    happened_at: datetime | None = None
+    happened_at: AwareDatetime | None = None
     event_version: str | None = Field(default=None, max_length=200)
     scope: str = Field(min_length=1, max_length=5000)
+
+
+class EventInput(EventFields, Input):
+    pass
 
 
 class EventUpdate(EventInput, Mutation):
@@ -91,6 +98,27 @@ class DecisionInput(Mutation):
     status: Literal["selected", "deferred", "rejected", "evidence_only", "observe"]
 
 
+class EventRef(BaseModel):
+    id: str
+    revision: int = Field(ge=1)
+
+
+class MergeInput(Input):
+    events: list[EventRef] = Field(min_length=2, max_length=20)
+    target_id: str
+    reason: str = Field(min_length=1, max_length=5000)
+
+
+class SplitInput(Mutation):
+    target: EventFields
+    member_ids: list[str] = Field(min_length=1)
+    claim_ids: list[str] = Field(default_factory=list)
+
+
+class RestoreInput(Input):
+    reason: str = Field(min_length=1, max_length=5000)
+
+
 class ORMView(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -104,6 +132,8 @@ class EventView(ORMView):
     happened_at: datetime | None
     event_version: str | None
     scope: str
+    lifecycle: str
+    redirected_to: str | None
     revision: int
     value_status: str
     quality_status: str
@@ -165,6 +195,20 @@ class HistoryView(ORMView):
     created_at: datetime
 
 
+class ClusterOperationView(ORMView):
+    id: str
+    kind: str
+    actor: str
+    reason: str
+    after_revisions: dict[str, int]
+    created_event_ids: list[str]
+    status: str
+    created_at: datetime
+    restored_at: datetime | None
+    restored_by: str | None
+    restore_reason: str | None
+
+
 class EventDetail(BaseModel):
     event: EventView
     members: list[MemberView]
@@ -173,6 +217,7 @@ class EventDetail(BaseModel):
     reviews: list[ReviewView]
     history: list[HistoryView]
     verified_source_roots: int
+    cluster_operations: list[ClusterOperationView]
 
 
 class InboxView(BaseModel):
@@ -182,17 +227,49 @@ class InboxView(BaseModel):
     limit: int
 
 
+class SuggestedEvent(EventRef):
+    title: str
+
+
+class ClusterPair(BaseModel):
+    left: SuggestedEvent
+    right: SuggestedEvent
+    score: float
+    suggestion: str
+    reasons: list[str]
+    conflicts: list[str]
+    shared_version_ids: list[str]
+
+
+class ClusterSuggestionsView(BaseModel):
+    method: str
+    considered_events: int
+    total_events: int
+    total_pairs: int
+    pairs: list[ClusterPair]
+    limitations: list[str]
+
+
+@router.get("/cluster-suggestions", response_model=ClusterSuggestionsView)
+def cluster_suggestions():
+    with Session() as db:
+        return suggestions(db)
+
+
 @router.get("/events", response_model=InboxView)
 def events(
     decision: Literal["pending", "selected", "deferred", "rejected", "evidence_only", "observe"]
     | None = None,
     offset: int = 0,
     limit: int = 50,
+    include_archived: bool = False,
 ):
     if offset < 0 or not 1 <= limit <= 100:
         raise HTTPException(422, "分页参数无效")
     with Session() as db:
         query = select(EditorialEvent)
+        if not include_archived:
+            query = query.where(EditorialEvent.lifecycle == "active")
         if decision:
             query = query.where(EditorialEvent.decision == decision)
         count = db.scalar(select(func.count()).select_from(query.subquery()))
@@ -271,6 +348,11 @@ def event_detail(event_id: str):
             "verified_source_roots": len(
                 {e.source_root for e in evidence if e.status == "verified"}
             ),
+            "cluster_operations": db.scalars(
+                select(ClusterOperation)
+                .where(ClusterOperation.after_revisions.has_key(event_id))
+                .order_by(ClusterOperation.created_at.desc())
+            ).all(),
         }
 
 
@@ -364,5 +446,38 @@ def make_decision(event_id: str, body: DecisionInput):
     with Session() as db:
         event = editorial.event_for_update(db, event_id, body.revision)
         result = editorial.decide(db, event, body)
+        db.commit()
+        return result
+
+
+@router.patch("/events/{event_id}/claims/{claim_id}", response_model=ClaimView)
+def edit_claim(event_id: str, claim_id: str, body: ClaimInput):
+    with Session() as db:
+        event = editorial.event_for_update(db, event_id, body.revision)
+        result = clustering.edit_claim(db, event, claim_id, body)
+        db.commit()
+        return result
+
+
+@router.post("/clusters/merge", response_model=ClusterOperationView, status_code=201)
+def merge_events(body: MergeInput):
+    with Session() as db:
+        result = clustering.merge(db, body)
+        db.commit()
+        return result
+
+
+@router.post("/events/{event_id}/split", response_model=ClusterOperationView, status_code=201)
+def split_event(event_id: str, body: SplitInput):
+    with Session() as db:
+        result = clustering.split(db, event_id, body)
+        db.commit()
+        return result
+
+
+@router.post("/clusters/{operation_id}/restore", response_model=ClusterOperationView)
+def restore_cluster(operation_id: str, body: RestoreInput):
+    with Session() as db:
+        result = clustering.restore(db, operation_id, body)
         db.commit()
         return result

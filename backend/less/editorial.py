@@ -18,6 +18,8 @@ def event_for_update(db, event_id, revision):
     event = db.scalar(select(EditorialEvent).where(EditorialEvent.id == event_id).with_for_update())
     if not event:
         raise ValueError("事件不存在")
+    if event.lifecycle != "active":
+        raise ValueError("事件已合并或归档，请查看映射到的事件或恢复聚类操作")
     if event.revision != revision:
         raise ValueError("事件内容已更新，请刷新后再操作")
     return event
