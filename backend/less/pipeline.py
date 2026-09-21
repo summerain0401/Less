@@ -9,7 +9,7 @@ from less.attempts import finish_attempt, start_attempt
 from less.budget import daily_usage, local_today
 from less.config import settings
 from less.db import Session, lock
-from less.models import AuditLog, Item, ItemVersion, NormalizeRun, RuntimeState, now
+from less.models import AssistRun, AuditLog, Item, ItemVersion, NormalizeRun, RuntimeState, now
 
 
 def queue_normalize(version_id: str, force: bool = False) -> str:
@@ -51,9 +51,10 @@ def resume_ai(actor: str):
         state = db.get(RuntimeState, "ai")
         if state:
             state.value = {"paused": False, "reason": None}
-        for run in db.scalars(select(NormalizeRun).where(NormalizeRun.status == "blocked")):
-            run.status, run.next_attempt_at = "pending", now()
-            run.attempts = 0
+        for model in (NormalizeRun, AssistRun):
+            for run in db.scalars(select(model).where(model.status == "blocked")):
+                run.status, run.next_attempt_at = "pending", now()
+                run.attempts = 0
         db.add(AuditLog(action="resume-ai", object_id="ai", actor=actor))
         db.commit()
 
@@ -130,11 +131,13 @@ def recover_interrupted():
             return
         with Session() as db:
             cutoff = now() - timedelta(seconds=settings().codex_timeout + 60)
-            runs = db.scalars(
-                select(NormalizeRun).where(
-                    NormalizeRun.status == "running", NormalizeRun.started_at < cutoff
+            runs = [
+                run
+                for model in (NormalizeRun, AssistRun)
+                for run in db.scalars(
+                    select(model).where(model.status == "running", model.started_at < cutoff)
                 )
-            )
+            ]
             for run in runs:
                 run.status = "retryable" if run.attempts < settings().max_attempts else "failed"
                 run.error, run.finished_at = (

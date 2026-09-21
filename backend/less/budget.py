@@ -4,7 +4,7 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import select
 
 from less.config import settings
-from less.models import NormalizeRun, now
+from less.models import AssistRun, NormalizeRun, now
 
 
 def day_bounds(day: date):
@@ -21,9 +21,12 @@ def local_today(at=None):
 def daily_usage(db, day: date):
     start, end = day_bounds(day)
     known, legacy = 0, 0
-    for started, count, logs in db.execute(
-        select(NormalizeRun.started_at, NormalizeRun.attempts, NormalizeRun.attempts_log)
-    ):
+    records = [
+        row
+        for model in (NormalizeRun, AssistRun)
+        for row in db.execute(select(model.started_at, model.attempts, model.attempts_log))
+    ]
+    for started, count, logs in records:
         for entry in logs:
             timestamp = datetime.fromisoformat(entry["started_at"])
             if start <= timestamp < end:

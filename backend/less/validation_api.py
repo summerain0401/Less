@@ -341,7 +341,7 @@ def daily_markdown(day: date | None = None):
         "",
         *[f"- {key}: {value}" for key, value in r["editorial_activity"].items()],
         "",
-        "机器 Candidate 阶段尚未实现，其指标为未知而非 0。",
+        "机器候选记录当日完成的最后一次初筛，不代表人工通过或当前有效库存。",
         "此文件是数据库的只读导出；需要更正时应在工作台追加记录后重新导出。",
         "",
     ]

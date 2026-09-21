@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import type { Check, Detail, Item, Overview, Run, Source } from "./types";
 import { ValidationDesk } from "./ValidationDesk";
 import { EditorialInbox } from "./EditorialInbox";
+import { AssistWorkspace } from "./AssistWorkspace";
 import { SignalWorkspace } from "./SignalWorkspace";
 import { BriefWorkspace } from "./BriefWorkspace";
 import "./style.css";
@@ -137,6 +138,7 @@ function App() {
             ["editorial", "编辑收件箱", "05"],
             ["briefs", "Brief 与 Today", "06"],
             ["signals", "Signal", "07"],
+            ["assist", "机器辅助", "08"],
           ].map(([id, label, n]) => (
             <button
               key={id}
@@ -155,7 +157,7 @@ function App() {
         <div className="sidebar-footer">
           <span className="dot" /> 本地工作台
           <br />
-          <small>PHASE 1 / WEEK 1–3</small>
+          <small>PHASE 1 / 编辑工作台</small>
         </div>
       </aside>
       <main>
@@ -173,7 +175,11 @@ function App() {
                       ? "把材料变成可核查的事件"
                       : tab === "briefs"
                         ? "每天只读值得看的内容"
-                        : "每一步都有记录"}
+                        : tab === "signals"
+                          ? "让判断接受证据检验"
+                          : tab === "assist"
+                            ? "从机器建议到独立判断"
+                            : "每一步都有记录"}
             </h1>
             <p>
               {tab === "items"
@@ -184,11 +190,17 @@ function App() {
                     ? "从跨来源抽查到人工工作计时，逐项检验第一周的运行质量。"
                     : tab === "editorial"
                       ? "写清楚价值理由，逐条核对证据，再作出编辑决定。"
-                      : "区分无更新、失败与漏执行，保留真实的运行过程。"}
+                      : tab === "briefs"
+                        ? "核对当前版本，明确批准后发布，并记录实际阅读反馈。"
+                        : tab === "signals"
+                          ? "保存假设、反证与复评历史，观察判断如何随证据变化。"
+                          : tab === "assist"
+                            ? "保留原文依据与机器局限，通过独立审核决定内容价值。"
+                            : "区分无更新、失败与漏执行，保留真实的运行过程。"}
             </p>
           </div>
           <span className="phase">
-            内部 · {tab === "editorial" ? "Week 2" : "Week 1"}
+            内部工作台
           </span>
         </header>
         {error && (
@@ -238,6 +250,7 @@ function App() {
         {tab === "editorial" && <EditorialInbox items={items} />}
         {tab === "briefs" && <BriefWorkspace />}
         {tab === "signals" && <SignalWorkspace />}
+        {tab === "assist" && <AssistWorkspace items={items} />}
         {tab === "items" && !selected && (
           <section>
             <div className="section-heading">

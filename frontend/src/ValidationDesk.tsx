@@ -193,6 +193,9 @@ export function ValidationDesk({ sources }: { sources: Source[] }) {
                 <p key={key}>
                   {(
                     {
+                      machine_candidates: "机器候选",
+                      machine_excluded: "机器排除",
+                      machine_uncertain: "机器待判断",
                       events_created: "新建事件",
                       published_briefs: "内部发布 Brief",
                       signals_reviewed: "复评 Signal",

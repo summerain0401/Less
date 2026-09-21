@@ -7,7 +7,7 @@ from less.attempts import finish_attempt
 from less.collector import collect
 from less.config import settings
 from less.db import Session, lock
-from less.models import ItemVersion, NormalizeRun, Source, SourceCheck, now
+from less.models import AssistRun, ItemVersion, NormalizeRun, Source, SourceCheck, now
 from less.pipeline import ai_state, execute_normalize, queue_normalize, recover_interrupted
 
 app = Celery("less", broker=settings().redis_url)
@@ -114,6 +114,16 @@ def dispatch():
             for version_id in versions:
                 queue_normalize(version_id)
         if not ai_state(db).get("paused"):
+            for pending in db.scalars(
+                select(AssistRun)
+                .where(
+                    AssistRun.status.in_(["pending", "retryable", "budget_wait"]),
+                    AssistRun.next_attempt_at <= now(),
+                )
+                .order_by(AssistRun.created_at)
+                .limit(5)
+            ):
+                assist_task.delay(pending.id)
             for run in db.scalars(
                 select(NormalizeRun)
                 .where(
@@ -124,3 +134,10 @@ def dispatch():
                 .limit(5)
             ):
                 normalize_task.delay(run.id)
+
+
+@app.task(name="less.assist")
+def assist_task(run_id):
+    from less.assist import execute
+
+    execute(run_id)

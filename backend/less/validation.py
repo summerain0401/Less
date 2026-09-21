@@ -10,6 +10,7 @@ from less.budget import daily_usage, day_bounds
 from less.config import settings
 from less.db import Session, lock
 from less.models import (
+    AssistRun,
     AuditLog,
     FieldReview,
     Item,
@@ -262,10 +263,17 @@ def report(day: date, at=None):
                 NormalizeRun.status == "succeeded",
             )
         ).all()
+        completed_assists = db.scalars(
+            select(AssistRun).where(
+                AssistRun.finished_at >= start,
+                AssistRun.finished_at < cutoff,
+                AssistRun.status == "succeeded",
+            )
+        ).all()
         tokens = sum(
             (r.metadata_.get("usage") or {}).get("input_tokens", 0)
             + (r.metadata_.get("usage") or {}).get("output_tokens", 0)
-            for r in completed_runs
+            for r in [*completed_runs, *completed_assists]
         )
         sessions = db.scalars(
             select(WorkSession).where(
@@ -356,7 +364,7 @@ def report(day: date, at=None):
             "sources": source_rows,
             "later_stages": {
                 "events": activity["events_created"],
-                "candidates": None,
+                "candidates": activity["machine_candidates"],
                 "published_briefs": activity["published_briefs"],
             },
             "editorial_activity": activity,
@@ -462,7 +470,29 @@ def editorial_activity(db, start, cutoff):
         .order_by(ReadingFeedback.created_at, ReadingFeedback.id)
     ).all()
     latest_feedback = {(r.version_id, r.actor): r for r in feedback}
+    assessed = db.scalars(
+        select(AssistRun)
+        .where(
+            AssistRun.stage == "value",
+            AssistRun.status == "succeeded",
+            AssistRun.finished_at >= start,
+            AssistRun.finished_at < cutoff,
+        )
+        .order_by(AssistRun.finished_at, AssistRun.id)
+    ).all()
+    latest_assessed = {r.input["events"][0]["id"]: r for r in assessed}
+    machine = Counter(
+        "machine_uncertain"
+        if r.output["uncertain"]
+        else "machine_candidates"
+        if max(r.output["important"], r.output["useful"]) >= 2
+        else "machine_excluded"
+        for r in latest_assessed.values()
+    )
     return {
+        "machine_candidates": machine["machine_candidates"],
+        "machine_excluded": machine["machine_excluded"],
+        "machine_uncertain": machine["machine_uncertain"],
         "events_created": events,
         "published_briefs": len(publication_ids),
         "signals_reviewed": len(signal_ids),

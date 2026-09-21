@@ -97,8 +97,12 @@ def safe_environment() -> dict[str, str]:
 
 
 class CodexCliExecutor:
-    def __init__(self, config: Settings | None = None):
+    def __init__(
+        self, config: Settings | None = None, *, schema_model=Normalized, instruction=None
+    ):
         self.config = config or settings()
+        self.schema_model = schema_model
+        self.instruction = instruction
 
     def command(self, directory: Path) -> list[str]:
         args = [
@@ -159,10 +163,16 @@ class CodexCliExecutor:
             "Do not approve, publish, or assess a Signal.\nMATERIAL_JSON:\n"
             + json.dumps(material, ensure_ascii=False)
         )
+        if self.instruction is not None:
+            prompt = (
+                self.instruction + "\nMATERIAL_JSON:\n" + json.dumps(material, ensure_ascii=False)
+            )
         started = time.monotonic()
         with tempfile.TemporaryDirectory(prefix="less-ai-") as tmp:
             directory = Path(tmp)
-            (directory / "schema.json").write_text(json.dumps(Normalized.model_json_schema()))
+            (directory / "schema.json").write_text(
+                json.dumps(self.schema_model.model_json_schema())
+            )
             try:
                 version = subprocess.run(
                     [self.config.codex_bin, "--version"],

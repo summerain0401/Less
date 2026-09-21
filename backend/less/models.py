@@ -398,3 +398,26 @@ class ReadingFeedback(Base):
     reason: Mapped[str] = mapped_column(Text)
     next_day: Mapped[bool]
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class AssistRun(Base):
+    __tablename__ = "assist_runs"
+    __table_args__ = (UniqueConstraint("execution_key"),)
+    id: Mapped[str] = mapped_column(primary_key=True, default=uid)
+    execution_key: Mapped[str]
+    stage: Mapped[str]
+    prompt_version: Mapped[str]
+    model: Mapped[str]
+    input: Mapped[dict] = mapped_column(JSONB)
+    status: Mapped[str] = mapped_column(default="pending")
+    attempts: Mapped[int] = mapped_column(default=0)
+    attempts_log: Mapped[list] = mapped_column(JSONB, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    next_attempt_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    output: Mapped[dict | None] = mapped_column(JSONB)
+    raw_output: Mapped[str | None] = mapped_column(Text)
+    metadata_: Mapped[dict] = mapped_column("metadata", JSONB, default=dict)
+    error: Mapped[str | None] = mapped_column(Text)
+    applied_event_id: Mapped[str | None] = mapped_column(ForeignKey("editorial_events.id"))

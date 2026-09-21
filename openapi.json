@@ -2708,6 +2708,371 @@
           }
         }
       }
+    },
+    "/api/assist": {
+      "post": {
+        "tags": [
+          "Machine editorial assistance"
+        ],
+        "summary": "Queue",
+        "operationId": "queue_api_assist_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssistInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssistView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Machine editorial assistance"
+        ],
+        "summary": "Runs",
+        "operationId": "runs_api_assist_get",
+        "parameters": [
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AssistView"
+                  },
+                  "title": "Response Runs Api Assist Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assist/{run_id}/retry": {
+      "post": {
+        "tags": [
+          "Machine editorial assistance"
+        ],
+        "summary": "Retry",
+        "operationId": "retry_api_assist__run_id__retry_post",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Input"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssistView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assist/{run_id}/event": {
+      "post": {
+        "tags": [
+          "Machine editorial assistance"
+        ],
+        "summary": "Apply Event",
+        "operationId": "apply_event_api_assist__run_id__event_post",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Input"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assist/candidates": {
+      "get": {
+        "tags": [
+          "Machine editorial assistance"
+        ],
+        "summary": "Candidates",
+        "operationId": "candidates_api_assist_candidates_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assist/audits": {
+      "get": {
+        "tags": [
+          "Machine editorial assistance"
+        ],
+        "summary": "Value Audits",
+        "operationId": "value_audits_api_assist_audits_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Machine editorial assistance"
+        ],
+        "summary": "Sample Value",
+        "operationId": "sample_value_api_assist_audits_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValueAuditInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assist/audits/{batch_id}": {
+      "get": {
+        "tags": [
+          "Machine editorial assistance"
+        ],
+        "summary": "Value Audit",
+        "operationId": "value_audit_api_assist_audits__batch_id__get",
+        "parameters": [
+          {
+            "name": "batch_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Batch Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assist/audits/{batch_id}/reviews": {
+      "post": {
+        "tags": [
+          "Machine editorial assistance"
+        ],
+        "summary": "Value Audit Review",
+        "operationId": "value_audit_review_api_assist_audits__batch_id__reviews_post",
+        "parameters": [
+          {
+            "name": "batch_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Batch Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValueAuditReview"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2779,6 +3144,152 @@
           "actor"
         ],
         "title": "ActorInput"
+      },
+      "AssistInput": {
+        "properties": {
+          "actor": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Actor"
+          },
+          "stage": {
+            "type": "string",
+            "enum": [
+              "event",
+              "value",
+              "pair",
+              "brief"
+            ],
+            "title": "Stage"
+          },
+          "version_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version Id"
+          },
+          "event_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 2,
+            "title": "Event Ids"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "actor",
+          "stage"
+        ],
+        "title": "AssistInput"
+      },
+      "AssistView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "stage": {
+            "type": "string",
+            "title": "Stage"
+          },
+          "prompt_version": {
+            "type": "string",
+            "title": "Prompt Version"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "input": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Input"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "attempts": {
+            "type": "integer",
+            "title": "Attempts"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "output": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "applied_event_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Applied Event Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "stage",
+          "prompt_version",
+          "model",
+          "input",
+          "status",
+          "attempts",
+          "created_at",
+          "finished_at",
+          "output",
+          "error",
+          "applied_event_id"
+        ],
+        "title": "AssistView"
       },
       "AuditDetail": {
         "properties": {
@@ -4975,6 +5486,22 @@
         ],
         "title": "InboxView"
       },
+      "Input": {
+        "properties": {
+          "actor": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Actor"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "actor"
+        ],
+        "title": "Input"
+      },
       "ItemIdentityView": {
         "properties": {
           "id": {
@@ -6992,6 +7519,101 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "ValueAuditInput": {
+        "properties": {
+          "actor": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Actor"
+          },
+          "seed": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Seed"
+          },
+          "target_count": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Target Count",
+            "default": 20
+          },
+          "pool": {
+            "type": "string",
+            "enum": [
+              "excluded",
+              "candidate"
+            ],
+            "title": "Pool",
+            "default": "excluded"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "actor",
+          "seed"
+        ],
+        "title": "ValueAuditInput"
+      },
+      "ValueAuditReview": {
+        "properties": {
+          "actor": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Actor"
+          },
+          "run_id": {
+            "type": "string",
+            "title": "Run Id"
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Revision"
+          },
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "value",
+              "no_value",
+              "uncertain"
+            ],
+            "title": "Verdict"
+          },
+          "important_reason": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Important Reason"
+          },
+          "useful_reason": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Useful Reason"
+          },
+          "original_checked": {
+            "type": "boolean",
+            "title": "Original Checked"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "actor",
+          "run_id",
+          "expected_revision",
+          "verdict",
+          "important_reason",
+          "useful_reason",
+          "original_checked"
+        ],
+        "title": "ValueAuditReview"
       },
       "ValueReview": {
         "properties": {
