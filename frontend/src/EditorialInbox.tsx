@@ -8,6 +8,7 @@ import {
 } from "./editorialForms";
 import type { S, EventDetail } from "./editorialForms";
 import { EventClusterTools, ClusterSuggestions } from "./ClusterTools";
+import { ClusterAudit } from "./ClusterAudit";
 import type { Detail, Item } from "./types";
 
 export function EditorialInbox({ items }: { items: Item[] }) {
@@ -125,6 +126,7 @@ export function EditorialInbox({ items }: { items: Item[] }) {
       ) : (
         <>
           <ClusterSuggestions onOpen={openEvent} />
+          <ClusterAudit actor={actor} />
           <details className="work-panel">
             <summary>新建事件骨架</summary>
             <EditorForm

@@ -654,6 +654,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/editorial/cluster-audits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Batches */
+        get: operations["batches_api_editorial_cluster_audits_get"];
+        put?: never;
+        /** Sample */
+        post: operations["sample_api_editorial_cluster_audits_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/editorial/cluster-audits/{batch_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Detail */
+        get: operations["detail_api_editorial_cluster_audits__batch_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/editorial/cluster-audits/{batch_id}/pairs/{pair_id}/labels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Label */
+        post: operations["label_api_editorial_cluster_audits__batch_id__pairs__pair_id__labels_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -677,21 +729,27 @@ export interface components {
             /** Actor */
             actor: string;
         };
+        /** AuditDetail */
+        AuditDetail: {
+            batch: components["schemas"]["ClusterAuditBatchView"];
+            /** Pairs */
+            pairs: components["schemas"]["PairView"][];
+            /** Metrics */
+            metrics: {
+                [key: string]: unknown;
+            };
+            /** Blind Metrics */
+            blind_metrics: {
+                [key: string]: unknown;
+            };
+            /** Limitations */
+            limitations: string[];
+        };
         /** BatchDetail */
         BatchDetail: {
             batch: components["schemas"]["BatchView"];
             /** Samples */
             samples: components["schemas"]["SampleView"][];
-        };
-        /** BatchInput */
-        BatchInput: {
-            /** Actor */
-            actor: string;
-            /**
-             * Target Count
-             * @default 30
-             */
-            target_count: number;
         };
         /** BatchView */
         BatchView: {
@@ -819,6 +877,32 @@ export interface components {
             kind: string;
             /** Critical */
             critical: boolean;
+        };
+        /** ClusterAuditBatchView */
+        ClusterAuditBatchView: {
+            /** Id */
+            id: string;
+            /** Actor */
+            actor: string;
+            /** Seed */
+            seed: string;
+            /** Purpose */
+            purpose: string;
+            /** Method */
+            method: string;
+            /** Target Count */
+            target_count: number;
+            /** Population Events */
+            population_events: number;
+            /** Considered Events */
+            considered_events: number;
+            /** Population Pairs */
+            population_pairs: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
         };
         /** ClusterOperationView */
         ClusterOperationView: {
@@ -1320,6 +1404,42 @@ export interface components {
             url: string;
             version: components["schemas"]["VersionView"];
         };
+        /** LabelInput */
+        LabelInput: {
+            /** Actor */
+            actor: string;
+            /** Expected Revision */
+            expected_revision: number;
+            /**
+             * Verdict
+             * @enum {string}
+             */
+            verdict: "same" | "different" | "uncertain";
+            /** Reason */
+            reason: string;
+            /** Original Checked */
+            original_checked: boolean;
+        };
+        /** LabelView */
+        LabelView: {
+            /** Id */
+            id: string;
+            /** Revision */
+            revision: number;
+            /** Actor */
+            actor: string;
+            /** Verdict */
+            verdict: string;
+            /** Reason */
+            reason: string;
+            /** Original Checked */
+            original_checked: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
         /** MemberInput */
         MemberInput: {
             /** Actor */
@@ -1420,6 +1540,23 @@ export interface components {
             ai: components["schemas"]["AIStateView"];
             /** Stage */
             stage: string;
+        };
+        /** PairView */
+        PairView: {
+            /** Id */
+            id: string;
+            /** Position */
+            position: number;
+            /** Snapshot */
+            snapshot: {
+                [key: string]: unknown;
+            };
+            /** Prediction */
+            prediction: {
+                [key: string]: unknown;
+            } | null;
+            /** Labels */
+            labels: components["schemas"]["LabelView"][];
         };
         /** PrepareInput */
         PrepareInput: {
@@ -1814,6 +1951,23 @@ export interface components {
              */
             created_at: string;
         };
+        /** BatchInput */
+        less__cluster_audit__BatchInput: {
+            /** Actor */
+            actor: string;
+            /** Seed */
+            seed: string;
+            /**
+             * Purpose
+             * @enum {string}
+             */
+            purpose: "development" | "acceptance";
+            /**
+             * Target Count
+             * @default 30
+             */
+            target_count: number;
+        };
         /** ReviewView */
         less__editorial_api__ReviewView: {
             /** Id */
@@ -1835,6 +1989,16 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+        };
+        /** BatchInput */
+        less__validation_api__BatchInput: {
+            /** Actor */
+            actor: string;
+            /**
+             * Target Count
+             * @default 30
+             */
+            target_count: number;
         };
         /** ParagraphView */
         less__validation_api__ParagraphView: {
@@ -2298,7 +2462,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["BatchInput"];
+                "application/json": components["schemas"]["less__validation_api__BatchInput"];
             };
         };
         responses: {
@@ -3138,6 +3302,126 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClusterOperationView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    batches_api_editorial_cluster_audits_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClusterAuditBatchView"][];
+                };
+            };
+        };
+    };
+    sample_api_editorial_cluster_audits_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["less__cluster_audit__BatchInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClusterAuditBatchView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    detail_api_editorial_cluster_audits__batch_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batch_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    label_api_editorial_cluster_audits__batch_id__pairs__pair_id__labels_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batch_id: string;
+                pair_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LabelInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LabelView"];
                 };
             };
             /** @description Validation Error */

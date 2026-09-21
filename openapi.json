@@ -567,7 +567,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/BatchInput"
+                "$ref": "#/components/schemas/less__validation_api__BatchInput"
               }
             }
           },
@@ -1827,6 +1827,173 @@
           }
         }
       }
+    },
+    "/api/editorial/cluster-audits": {
+      "get": {
+        "tags": [
+          "Cluster audit"
+        ],
+        "summary": "Batches",
+        "operationId": "batches_api_editorial_cluster_audits_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ClusterAuditBatchView"
+                  },
+                  "type": "array",
+                  "title": "Response Batches Api Editorial Cluster Audits Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Cluster audit"
+        ],
+        "summary": "Sample",
+        "operationId": "sample_api_editorial_cluster_audits_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/less__cluster_audit__BatchInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClusterAuditBatchView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/editorial/cluster-audits/{batch_id}": {
+      "get": {
+        "tags": [
+          "Cluster audit"
+        ],
+        "summary": "Detail",
+        "operationId": "detail_api_editorial_cluster_audits__batch_id__get",
+        "parameters": [
+          {
+            "name": "batch_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Batch Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/editorial/cluster-audits/{batch_id}/pairs/{pair_id}/labels": {
+      "post": {
+        "tags": [
+          "Cluster audit"
+        ],
+        "summary": "Label",
+        "operationId": "label_api_editorial_cluster_audits__batch_id__pairs__pair_id__labels_post",
+        "parameters": [
+          {
+            "name": "batch_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Batch Id"
+            }
+          },
+          {
+            "name": "pair_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Pair Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LabelInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabelView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1899,6 +2066,46 @@
         ],
         "title": "ActorInput"
       },
+      "AuditDetail": {
+        "properties": {
+          "batch": {
+            "$ref": "#/components/schemas/ClusterAuditBatchView"
+          },
+          "pairs": {
+            "items": {
+              "$ref": "#/components/schemas/PairView"
+            },
+            "type": "array",
+            "title": "Pairs"
+          },
+          "metrics": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metrics"
+          },
+          "blind_metrics": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Blind Metrics"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Limitations"
+          }
+        },
+        "type": "object",
+        "required": [
+          "batch",
+          "pairs",
+          "metrics",
+          "blind_metrics",
+          "limitations"
+        ],
+        "title": "AuditDetail"
+      },
       "BatchDetail": {
         "properties": {
           "batch": {
@@ -1918,29 +2125,6 @@
           "samples"
         ],
         "title": "BatchDetail"
-      },
-      "BatchInput": {
-        "properties": {
-          "actor": {
-            "type": "string",
-            "maxLength": 80,
-            "minLength": 1,
-            "title": "Actor"
-          },
-          "target_count": {
-            "type": "integer",
-            "maximum": 100.0,
-            "minimum": 1.0,
-            "title": "Target Count",
-            "default": 30
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "actor"
-        ],
-        "title": "BatchInput"
       },
       "BatchView": {
         "properties": {
@@ -2265,6 +2449,65 @@
           "critical"
         ],
         "title": "ClaimView"
+      },
+      "ClusterAuditBatchView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "actor": {
+            "type": "string",
+            "title": "Actor"
+          },
+          "seed": {
+            "type": "string",
+            "title": "Seed"
+          },
+          "purpose": {
+            "type": "string",
+            "title": "Purpose"
+          },
+          "method": {
+            "type": "string",
+            "title": "Method"
+          },
+          "target_count": {
+            "type": "integer",
+            "title": "Target Count"
+          },
+          "population_events": {
+            "type": "integer",
+            "title": "Population Events"
+          },
+          "considered_events": {
+            "type": "integer",
+            "title": "Considered Events"
+          },
+          "population_pairs": {
+            "type": "integer",
+            "title": "Population Pairs"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "actor",
+          "seed",
+          "purpose",
+          "method",
+          "target_count",
+          "population_events",
+          "considered_events",
+          "population_pairs",
+          "created_at"
+        ],
+        "title": "ClusterAuditBatchView"
       },
       "ClusterOperationView": {
         "properties": {
@@ -3711,6 +3954,94 @@
         ],
         "title": "ItemView"
       },
+      "LabelInput": {
+        "properties": {
+          "actor": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Actor"
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Revision"
+          },
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "same",
+              "different",
+              "uncertain"
+            ],
+            "title": "Verdict"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Reason"
+          },
+          "original_checked": {
+            "type": "boolean",
+            "title": "Original Checked"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "actor",
+          "expected_revision",
+          "verdict",
+          "reason",
+          "original_checked"
+        ],
+        "title": "LabelInput"
+      },
+      "LabelView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "actor": {
+            "type": "string",
+            "title": "Actor"
+          },
+          "verdict": {
+            "type": "string",
+            "title": "Verdict"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "original_checked": {
+            "type": "boolean",
+            "title": "Original Checked"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "revision",
+          "actor",
+          "verdict",
+          "reason",
+          "original_checked",
+          "created_at"
+        ],
+        "title": "LabelView"
+      },
       "MemberInput": {
         "properties": {
           "actor": {
@@ -4028,6 +4359,51 @@
           "stage"
         ],
         "title": "OverviewView"
+      },
+      "PairView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "position": {
+            "type": "integer",
+            "title": "Position"
+          },
+          "snapshot": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Snapshot"
+          },
+          "prediction": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prediction"
+          },
+          "labels": {
+            "items": {
+              "$ref": "#/components/schemas/LabelView"
+            },
+            "type": "array",
+            "title": "Labels"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "position",
+          "snapshot",
+          "prediction",
+          "labels"
+        ],
+        "title": "PairView"
       },
       "PrepareInput": {
         "properties": {
@@ -5182,6 +5558,45 @@
         ],
         "title": "ReviewView"
       },
+      "less__cluster_audit__BatchInput": {
+        "properties": {
+          "actor": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Actor"
+          },
+          "seed": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Seed"
+          },
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "development",
+              "acceptance"
+            ],
+            "title": "Purpose"
+          },
+          "target_count": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Target Count",
+            "default": 30
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "actor",
+          "seed",
+          "purpose"
+        ],
+        "title": "BatchInput"
+      },
       "less__editorial_api__ReviewView": {
         "properties": {
           "id": {
@@ -5226,6 +5641,29 @@
           "created_at"
         ],
         "title": "ReviewView"
+      },
+      "less__validation_api__BatchInput": {
+        "properties": {
+          "actor": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Actor"
+          },
+          "target_count": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Target Count",
+            "default": 30
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "actor"
+        ],
+        "title": "BatchInput"
       },
       "less__validation_api__ParagraphView": {
         "properties": {

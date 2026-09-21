@@ -391,3 +391,7 @@ app.include_router(validation_router)
 from less.editorial_api import router as editorial_router  # noqa: E402
 
 app.include_router(editorial_router)
+
+from less.cluster_audit import router as cluster_audit_router  # noqa: E402
+
+app.include_router(cluster_audit_router)

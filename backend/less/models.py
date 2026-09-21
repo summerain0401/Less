@@ -258,3 +258,40 @@ class ClusterOperation(Base):
     restored_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     restored_by: Mapped[str | None]
     restore_reason: Mapped[str | None] = mapped_column(Text)
+
+
+class ClusterAuditBatch(Base):
+    __tablename__ = "cluster_audit_batches"
+    id: Mapped[str] = mapped_column(primary_key=True, default=uid)
+    actor: Mapped[str]
+    seed: Mapped[str]
+    purpose: Mapped[str]
+    method: Mapped[str]
+    target_count: Mapped[int]
+    population_events: Mapped[int]
+    considered_events: Mapped[int]
+    population_pairs: Mapped[int]
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class ClusterAuditPair(Base):
+    __tablename__ = "cluster_audit_pairs"
+    __table_args__ = (UniqueConstraint("batch_id", "position"),)
+    id: Mapped[str] = mapped_column(primary_key=True, default=uid)
+    batch_id: Mapped[str] = mapped_column(ForeignKey("cluster_audit_batches.id"))
+    position: Mapped[int]
+    snapshot: Mapped[dict] = mapped_column(JSONB)
+    prediction: Mapped[dict] = mapped_column(JSONB)
+
+
+class ClusterAuditLabel(Base):
+    __tablename__ = "cluster_audit_labels"
+    __table_args__ = (UniqueConstraint("pair_id", "revision"),)
+    id: Mapped[str] = mapped_column(primary_key=True, default=uid)
+    pair_id: Mapped[str] = mapped_column(ForeignKey("cluster_audit_pairs.id"))
+    revision: Mapped[int]
+    actor: Mapped[str]
+    verdict: Mapped[str]
+    reason: Mapped[str] = mapped_column(Text)
+    original_checked: Mapped[bool]
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
