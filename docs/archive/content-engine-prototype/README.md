@@ -1,3 +1,5 @@
+> **已归档 · 2026-09-22**：本文描述已废弃的 Content Engine 原型，不应作为当前产品规范。文中的当前状态、计划与待办均为历史记录，不自动延续。参见 [归档说明](ARCHIVED.md) 和 [当前规范](../../README.md)。
+
 # Less
 
 Read less. Know more.
@@ -29,4 +31,4 @@ Less 的第一套正式工作文档。这里保存可编辑的 Markdown 主文�
 
 2026-09-20：Week 1 软件基础已实现：本地采集、原文版本、Codex 提取与提取复核工作台。首次真实接入 11 个来源节点，完成一次无 API Key 的 Codex 提取及备份恢复验证。MVP 的持续运行和人工质量指标仍待验证，勾选项保持未完成。
 
-启动方式见 [项目 README](../README.md)；实际结果见 [首次验证记录](../operations/reviews/2026-09-20-initial-validation.md)。下一步继续 Week 1 的连续运行、字段抽查和人工基线，再进入 Event / Inbox。
+启动方式见 [项目 README](README-project.md)；实际结果见 [首次验证记录](../../../operations/reviews/2026-09-20-initial-validation.md)。下一步继续 Week 1 的连续运行、字段抽查和人工基线，再进入 Event / Inbox。
