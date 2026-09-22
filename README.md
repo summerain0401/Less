@@ -1,21 +1,40 @@
 # Less
 
-Read less. Know more.
+**Read less. Know more.**
 
-Less 帮助读者以更少阅读理解值得关注的变化。内容发现、筛选、核验与提炼由 Content Skill / Agent 完成；软件负责保存、组织、检索和呈现 Brief、Topic 与 Source。
+Less 把内容获取当能力，把理解内容当产品。Content Skill / Agent 负责发现、筛选、核验与提炼；本地软件只保存和呈现值得留下的 Brief。
 
-当前产品与开发依据见 [文档索引](docs/README.md)：
+当前版本提供最小闭环：
 
-- [产品原则](docs/current/00-less-principles.md)
-- [轻量架构](docs/current/01-less-lite-architecture.md)
-- [Content Skill](docs/current/02-content-skill.md)
+- `less-content` Skill 交付结构化 Brief 草稿。
+- 管理页预览草稿，明确确认后才保存。
+- Today 按保留日期阅读少量内容，并显示真实来源日期。
+- Brief 详情保留事实、价值、判断、限制和具体原始来源。
+- Topics 从已保存内容自然生成。
 
-当前目标是先跑通少量 Brief 的保留、Today 阅读、详情与原始来源访问。
+当前规范见 [docs/README.md](docs/README.md)。旧 Content Engine 的代码历史由 `v0.1-content-engine-prototype` tag 保留，旧规范和运行记录仅供追溯。
 
-## 仓库与历史状态
+## 本地运行
 
-现有产品代码仍是旧 Content Engine 原型，本次仅整理文档，未实现轻量架构迁移。旧架构、周计划和验收清单不再作为当前开发要求。
+需要 Python 3.12、uv 和 Node.js。
 
-旧规范与原项目 README 完整保留在 [历史归档](docs/archive/content-engine-prototype/ARCHIVED.md)。需要查看原型的本地启动、操作、备份或验证说明时，参见 [旧项目 README](docs/archive/content-engine-prototype/README-project.md)；其内容仅描述历史原型。
+```bash
+make setup
+make dev
+```
 
-`operations/` 中的运行记录与来源配置保留原位；[历史实施进度](operations/implementation-status.md) 不代表轻量 Less 的待办计划。
+打开 <http://127.0.0.1:5173>。首次启动会自动创建 `data/less.db`，不需要 Docker、PostgreSQL、Redis 或外部 API Key。
+
+如需覆盖数据库位置或 Today 时区，复制 `.env.example` 为 `.env` 后修改。SQLite URL 使用绝对路径时形如 `sqlite:////absolute/path/to/less.db`。
+
+## 验证
+
+```bash
+make test
+```
+
+测试包含 SQLite API、Ruff、TypeScript/Vite 构建和 Playwright 浏览器场景。更新后端接口后运行 `make api-types` 同步 OpenAPI 与前端类型。
+
+## Content Skill
+
+仓库级 Skill 位于 `.agents/skills/less-content/`。它可以被 Codex 自动发现，也可以显式使用 `$less-content`。Skill 只输出草稿，不会自动写入内容库；请在管理页检查并确认保留。

@@ -1,18 +1,240 @@
-from datetime import datetime
+from contextlib import asynccontextmanager
+from datetime import date, datetime, time, timezone
 from typing import Literal
+from urllib.parse import urlparse
+from uuid import NAMESPACE_URL, uuid5
+from zoneinfo import ZoneInfo
 
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse, PlainTextResponse
-from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import func, select, text
+from fastapi import FastAPI, HTTPException, Query, Request, Response
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from sqlalchemy import delete, func, or_, select
+from sqlalchemy.orm import selectinload
 
-from less.ai import Normalized
-from less.db import Session
-from less.models import AuditLog, HumanReview, Item, ItemVersion, NormalizeRun, Source, SourceCheck
-from less.pipeline import ai_state, queue_normalize, resume_ai
-from less.storage import read_blob
+from less.config import settings
+from less.db import Session, init_db
+from less.models import Brief, BriefSource, BriefTopic, Source, Topic
 
-app = FastAPI(title="Less Content Engine", version="0.1.0")
+
+def utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def normalize_time(value: str | None) -> str | None:
+    if value is None:
+        return None
+    value = value.strip()
+    try:
+        if len(value) == 10:
+            return date.fromisoformat(value).isoformat()
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ValueError("时间必须是 YYYY-MM-DD 或带时区的 ISO 8601") from exc
+    if parsed.tzinfo is None:
+        raise ValueError("包含时刻时必须提供时区")
+    return parsed.isoformat()
+
+
+class InputModel(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+
+class SourceInput(InputModel):
+    name: str = Field(min_length=1, max_length=200)
+    url: str = Field(min_length=1, max_length=2000)
+    type: Literal["official_docs", "release", "paper", "blog", "media", "other"]
+    primary: bool = False
+    published_at: str | None = None
+
+    @field_validator("url")
+    @classmethod
+    def valid_url(cls, value: str) -> str:
+        parsed = urlparse(value)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            raise ValueError("来源必须是可访问的 http(s) 具体页面")
+        return value
+
+    @field_validator("published_at")
+    @classmethod
+    def valid_published_at(cls, value: str | None) -> str | None:
+        return normalize_time(value)
+
+
+class BriefFields(InputModel):
+    title: str = Field(min_length=1, max_length=500)
+    published_at: str | None = None
+    topics: list[str] = Field(min_length=1, max_length=12)
+    important: bool
+    useful: bool
+    confidence: Literal["high", "medium"]
+    sources: list[SourceInput] = Field(min_length=1, max_length=20)
+    what_happened: str = Field(min_length=1, max_length=10000)
+    why_it_matters: str = Field(min_length=1, max_length=10000)
+    our_take: str | None = Field(default=None, max_length=10000)
+    uncertainty: str | None = Field(default=None, max_length=10000)
+
+    @field_validator("published_at")
+    @classmethod
+    def valid_published_at(cls, value: str | None) -> str | None:
+        return normalize_time(value)
+
+    @field_validator("topics")
+    @classmethod
+    def valid_topics(cls, values: list[str]) -> list[str]:
+        result: list[str] = []
+        seen: set[str] = set()
+        for value in values:
+            value = value.strip()
+            if not value or len(value) > 80:
+                raise ValueError("主题名称需为 1–80 个字符")
+            key = value.casefold()
+            if key in seen:
+                raise ValueError("主题不能重复")
+            seen.add(key)
+            result.append(value)
+        return result
+
+    @model_validator(mode="after")
+    def editorial_rules(self):
+        if not self.important and not self.useful:
+            raise ValueError("important 和 useful 至少一项为 true")
+        if not any(source.primary for source in self.sources):
+            raise ValueError("至少需要一个主要来源")
+        urls = [source.url for source in self.sources]
+        if len(urls) != len(set(urls)):
+            raise ValueError("同一 Brief 的来源链接不能重复")
+        if self.confidence == "medium" and not self.uncertainty:
+            raise ValueError("medium confidence 必须说明 uncertainty")
+        return self
+
+
+class BriefCreate(BriefFields):
+    id: str = Field(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]*$")
+
+
+class BriefView(BriefCreate):
+    created_at: datetime
+    updated_at: datetime | None
+
+
+class TodayView(BaseModel):
+    day: date
+    entries: list[BriefView]
+
+
+class TopicView(BaseModel):
+    id: str
+    name: str
+    brief_count: int
+
+
+def load_options():
+    return (
+        selectinload(Brief.source_links).selectinload(BriefSource.source),
+        selectinload(Brief.topic_links).selectinload(BriefTopic.topic),
+    )
+
+
+def brief_view(brief: Brief) -> dict:
+    return {
+        "id": brief.id,
+        "title": brief.title,
+        "published_at": brief.published_at,
+        "topics": [link.topic.name for link in brief.topic_links],
+        "important": brief.important,
+        "useful": brief.useful,
+        "confidence": brief.confidence,
+        "sources": [
+            {
+                "name": source.name,
+                "url": source.url,
+                "type": source.type,
+                "primary": link.primary,
+                "published_at": source.published_at,
+            }
+            for link in brief.source_links
+            for source in [link.source]
+        ],
+        "what_happened": brief.what_happened,
+        "why_it_matters": brief.why_it_matters,
+        "our_take": brief.our_take,
+        "uncertainty": brief.uncertainty,
+        "created_at": brief.created_at,
+        "updated_at": brief.updated_at,
+    }
+
+
+def get_brief(db, brief_id: str) -> Brief | None:
+    return db.scalar(select(Brief).where(Brief.id == brief_id).options(*load_options()))
+
+
+def replace_content(db, brief: Brief, body: BriefFields) -> None:
+    previous_source_ids = [link.source_id for link in brief.source_links]
+    previous_topic_ids = [link.topic_id for link in brief.topic_links]
+    for field in (
+        "title",
+        "published_at",
+        "what_happened",
+        "why_it_matters",
+        "our_take",
+        "important",
+        "useful",
+        "confidence",
+        "uncertainty",
+    ):
+        setattr(brief, field, getattr(body, field))
+    brief.source_links.clear()
+    brief.topic_links.clear()
+    db.flush()
+    for position, source in enumerate(body.sources):
+        stored = db.scalar(select(Source).where(Source.url == source.url))
+        if stored is None:
+            stored = Source(
+                id=str(uuid5(NAMESPACE_URL, f"less:source:{source.url}")),
+                name=source.name,
+                url=source.url,
+                type=source.type,
+                published_at=source.published_at,
+            )
+            db.add(stored)
+        else:
+            stored.name = source.name
+            stored.type = source.type
+            stored.published_at = source.published_at
+        brief.source_links.append(
+            BriefSource(position=position, primary=source.primary, source=stored)
+        )
+    for position, name in enumerate(body.topics):
+        topic = db.scalar(select(Topic).where(func.lower(Topic.name) == name.lower()))
+        if topic is None:
+            topic = Topic(id=str(uuid5(NAMESPACE_URL, f"less:topic:{name.casefold()}")), name=name)
+            db.add(topic)
+        brief.topic_links.append(BriefTopic(position=position, topic=topic))
+    db.flush()
+    for source_id in previous_source_ids:
+        linked = db.scalar(select(BriefSource).where(BriefSource.source_id == source_id).limit(1))
+        if linked is None:
+            db.execute(delete(Source).where(Source.id == source_id))
+    for topic_id in previous_topic_ids:
+        linked = db.scalar(select(BriefTopic).where(BriefTopic.topic_id == topic_id).limit(1))
+        if linked is None:
+            db.execute(delete(Topic).where(Topic.id == topic_id))
+
+
+def day_bounds(day: date) -> tuple[str, str]:
+    local = ZoneInfo(settings().timezone)
+    start = datetime.combine(day, time.min, local).astimezone(timezone.utc)
+    end = datetime.combine(day, time.max, local).astimezone(timezone.utc)
+    return start.isoformat(), end.isoformat()
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    init_db()
+    yield
+
+
+app = FastAPI(title="Less", version="0.2.0", lifespan=lifespan)
 
 
 @app.middleware("http")
@@ -27,383 +249,129 @@ async def local_only(request: Request, call_next):
         "http://localhost:8000",
     }:
         return JSONResponse({"detail": "Untrusted origin"}, status_code=403)
-    if request.method in {
-        "POST",
-        "PATCH",
-        "DELETE",
-    } and "application/json" not in request.headers.get("content-type", ""):
-        return JSONResponse({"detail": "JSON request required"}, status_code=415)
+    if request.method in {"POST", "PUT"}:
+        if "application/json" not in request.headers.get("content-type", ""):
+            return JSONResponse({"detail": "JSON request required"}, status_code=415)
     return await call_next(request)
-
-
-class RequestBody(BaseModel):
-    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
-
-
-class Actor(RequestBody):
-    actor: str = Field(min_length=1, max_length=80)
-
-
-class SourceEdit(Actor):
-    status: Literal["active", "paused", "needs_review"]
-
-
-class NormalizeRequest(RequestBody):
-    force: bool = False
-
-
-class ReviewRequest(RequestBody):
-    run_id: str
-    reviewer: str = Field(min_length=1, max_length=80)
-    decision: Literal["accepted", "needs_correction"]
-    note: str = Field(min_length=1, max_length=5000)
-
-
-class SourceView(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-    id: str
-    name: str
-    node_url: str
-    feed_url: str
-    role: str
-    topics: list[str]
-    coverage: list[str]
-    authority: str
-    bias: str
-    status: str
-    interval_hours: int
-    next_due_at: datetime
-    last_success_at: datetime | None
-
-
-class ParagraphView(BaseModel):
-    id: str
-    text: str
-    start: int
-    end: int
-
-
-class VersionView(BaseModel):
-    id: str
-    item_id: str
-    content_hash: str
-    title: str
-    author: str | None
-    published_at: datetime | None
-    captured_at: datetime
-    text: str
-    paragraphs: list[ParagraphView]
-    snapshot_path: str
-    acquisition: str
-    limitations: list[str]
-
-
-class ItemIdentityView(BaseModel):
-    id: str
-    source_id: str
-    url: str
-    created_at: datetime
-
-
-class ItemView(BaseModel):
-    id: str
-    source_id: str
-    url: str
-    version: VersionView
-
-
-class RunMetadata(BaseModel):
-    model_config = ConfigDict(extra="allow")
-    cli_version: str | None = None
-    duration_seconds: float | None = None
-    usage: dict | None = None
-    cost: float | None = None
-
-
-class RunView(BaseModel):
-    id: str
-    version_id: str
-    execution_key: str
-    prompt_version: str
-    model: str
-    status: str
-    attempts: int
-    attempts_log: list[dict]
-    created_at: datetime
-    started_at: datetime | None
-    finished_at: datetime | None
-    next_attempt_at: datetime
-    output: Normalized | None
-    raw_output: str | None
-    metadata: RunMetadata
-    error: str | None
-
-
-class ReviewView(BaseModel):
-    id: str
-    version_id: str
-    run_id: str
-    reviewer: str
-    decision: str
-    note: str
-    created_at: datetime
-
-
-class DetailView(BaseModel):
-    version: VersionView
-    item: ItemIdentityView
-    runs: list[RunView]
-    reviews: list[ReviewView]
-
-
-class CheckView(BaseModel):
-    id: str
-    source_id: str
-    slot: str
-    scheduled_at: datetime
-    started_at: datetime | None
-    finished_at: datetime | None
-    status: str
-    attempts: int
-    attempts_log: list[dict]
-    next_attempt_at: datetime
-    item_count: int
-    feed_item_count: int
-    deferred_count: int
-    new_versions: int
-    error: str | None
-    snapshot_path: str | None
-
-
-class CountsView(BaseModel):
-    sources: int
-    connected_sources: int
-    items: int
-    versions: int
-    runs: int
-
-
-class AIStateView(BaseModel):
-    paused: bool
-    reason: str | None
-    code: str | None = None
-
-
-class OverviewView(BaseModel):
-    counts: CountsView
-    ai: AIStateView
-    stage: str
-
-
-def serialize(obj):
-    return {
-        col.key: getattr(obj, "metadata_" if col.key == "metadata" else col.key)
-        for col in obj.__table__.columns
-    }
 
 
 @app.get("/api/health")
 def health():
-    with Session() as db:
-        db.execute(text("SELECT 1"))
-    return {"status": "ok", "stage": "week-1"}
+    return {"status": "ok"}
 
 
-@app.get("/api/overview", response_model=OverviewView)
-def overview():
-    with Session() as db:
-        counts = {
-            name: db.scalar(select(func.count()).select_from(model))
-            for name, model in (
-                ("sources", Source),
-                ("items", Item),
-                ("versions", ItemVersion),
-                ("runs", NormalizeRun),
-            )
-        }
-        counts["connected_sources"] = db.scalar(
-            select(func.count()).select_from(Source).where(Source.last_success_at.is_not(None))
+@app.get("/api/briefs", response_model=list[BriefView])
+def list_briefs(
+    day: date | None = None,
+    topic: str | None = Query(default=None, max_length=80),
+    q: str | None = Query(default=None, max_length=200),
+):
+    statement = select(Brief).options(*load_options()).order_by(Brief.created_at.desc(), Brief.id)
+    if day:
+        start, end = day_bounds(day)
+        statement = statement.where(Brief.created_at.between(start, end))
+    if topic:
+        statement = statement.join(Brief.topic_links).join(BriefTopic.topic).where(
+            func.lower(Topic.name) == topic.lower()
         )
-        return {"counts": counts, "ai": ai_state(db), "stage": "Week 1 · Sources & Normalize"}
-
-
-@app.get("/api/sources", response_model=list[SourceView])
-def sources():
-    with Session() as db:
-        return db.scalars(select(Source).order_by(Source.name)).all()
-
-
-@app.patch("/api/sources/{source_id}", response_model=SourceView)
-def edit_source(source_id: str, body: SourceEdit):
-    with Session() as db:
-        source = db.get(Source, source_id)
-        if not source:
-            raise HTTPException(404, "Source not found")
-        source.status = body.status
-        db.add(
-            AuditLog(
-                action="source-status",
-                object_id=source_id,
-                actor=body.actor,
-                detail={"status": body.status},
+    if q:
+        pattern = f"%{q}%"
+        statement = statement.where(
+            or_(
+                Brief.title.ilike(pattern),
+                Brief.what_happened.ilike(pattern),
+                Brief.why_it_matters.ilike(pattern),
             )
         )
+    with Session() as db:
+        return [brief_view(brief) for brief in db.scalars(statement).unique().all()]
+
+
+@app.get("/api/briefs/{brief_id}", response_model=BriefView)
+def brief_detail(brief_id: str):
+    with Session() as db:
+        brief = get_brief(db, brief_id)
+        if brief is None:
+            raise HTTPException(404, "Brief 不存在")
+        return brief_view(brief)
+
+
+@app.post("/api/briefs", response_model=BriefView, status_code=201)
+def create_brief(body: BriefCreate):
+    with Session() as db:
+        if db.get(Brief, body.id):
+            raise HTTPException(409, "Brief ID 已存在")
+        brief = Brief(id=body.id, created_at=utc_now())
+        db.add(brief)
+        replace_content(db, brief, body)
         db.commit()
-        return source
+        return brief_view(get_brief(db, brief.id))
 
 
-@app.post("/api/sources/{source_id}/collect", status_code=202)
-def collect_source(source_id: str, body: Actor):
-    from less.models import uid
-
+@app.put("/api/briefs/{brief_id}", response_model=BriefView)
+def update_brief(brief_id: str, body: BriefFields):
     with Session() as db:
-        source = db.get(Source, source_id)
-        if not source or source.status != "active":
-            raise HTTPException(409, "Source must exist and be active")
-        check = SourceCheck(source_id=source_id, slot=f"manual:{uid()}")
-        db.add(check)
+        brief = get_brief(db, brief_id)
+        if brief is None:
+            raise HTTPException(404, "Brief 不存在")
+        replace_content(db, brief, body)
+        brief.updated_at = utc_now()
+        db.commit()
+        return brief_view(get_brief(db, brief.id))
+
+
+@app.delete("/api/briefs/{brief_id}", status_code=204)
+def delete_brief(brief_id: str):
+    with Session() as db:
+        brief = db.get(Brief, brief_id)
+        if brief is None:
+            raise HTTPException(404, "Brief 不存在")
+        topic_ids = db.scalars(
+            select(BriefTopic.topic_id).where(BriefTopic.brief_id == brief_id)
+        ).all()
+        source_ids = db.scalars(
+            select(BriefSource.source_id).where(BriefSource.brief_id == brief_id)
+        ).all()
+        db.delete(brief)
         db.flush()
-        db.add(AuditLog(action="collect", object_id=check.id, actor=body.actor))
-        db.commit()
-        return {"id": check.id, "status": "pending"}
-
-
-@app.get("/api/checks", response_model=list[CheckView])
-def checks():
-    with Session() as db:
-        return [
-            serialize(c)
-            for c in db.scalars(
-                select(SourceCheck).order_by(SourceCheck.scheduled_at.desc()).limit(100)
+        for topic_id in topic_ids:
+            linked = db.scalar(select(BriefTopic).where(BriefTopic.topic_id == topic_id).limit(1))
+            if linked is None:
+                db.execute(delete(Topic).where(Topic.id == topic_id))
+        for source_id in source_ids:
+            linked = db.scalar(
+                select(BriefSource).where(BriefSource.source_id == source_id).limit(1)
             )
-        ]
+            if linked is None:
+                db.execute(delete(Source).where(Source.id == source_id))
+        db.commit()
+    return Response(status_code=204)
 
 
-@app.get("/api/items", response_model=list[ItemView])
-def items():
+@app.get("/api/today", response_model=TodayView)
+def today(day: date | None = None):
+    selected_day = day or datetime.now(ZoneInfo(settings().timezone)).date()
+    start, end = day_bounds(selected_day)
+    with Session() as db:
+        briefs = db.scalars(
+            select(Brief)
+            .where(Brief.created_at.between(start, end))
+            .options(*load_options())
+            .order_by(Brief.created_at.desc(), Brief.id)
+        ).unique().all()
+        return {"day": selected_day, "entries": [brief_view(brief) for brief in briefs]}
+
+
+@app.get("/api/topics", response_model=list[TopicView])
+def topics():
     with Session() as db:
         rows = db.execute(
-            select(Item, ItemVersion)
-            .join(ItemVersion)
-            .order_by(ItemVersion.captured_at.desc())
-            .limit(100)
+            select(Topic.id, Topic.name, func.count(BriefTopic.brief_id).label("brief_count"))
+            .outerjoin(BriefTopic)
+            .group_by(Topic.id)
+            .order_by(Topic.name)
         ).all()
         return [
-            {
-                "id": item.id,
-                "source_id": item.source_id,
-                "url": item.url,
-                "version": serialize(version),
-            }
-            for item, version in rows
+            {"id": row.id, "name": row.name, "brief_count": row.brief_count}
+            for row in rows
         ]
-
-
-@app.get("/api/versions/{version_id}", response_model=DetailView)
-def version_detail(version_id: str):
-    with Session() as db:
-        version = db.get(ItemVersion, version_id)
-        if not version:
-            raise HTTPException(404, "Item version not found")
-        return {
-            "version": serialize(version),
-            "item": serialize(db.get(Item, version.item_id)),
-            "runs": [
-                serialize(r)
-                for r in db.scalars(
-                    select(NormalizeRun)
-                    .where(NormalizeRun.version_id == version_id)
-                    .order_by(NormalizeRun.created_at.desc())
-                )
-            ],
-            "reviews": [
-                serialize(r)
-                for r in db.scalars(
-                    select(HumanReview)
-                    .where(HumanReview.version_id == version_id)
-                    .order_by(HumanReview.created_at.desc())
-                )
-            ],
-        }
-
-
-@app.get("/api/versions/{version_id}/snapshot", response_class=PlainTextResponse)
-def snapshot(version_id: str):
-    with Session() as db:
-        version = db.get(ItemVersion, version_id)
-        if not version:
-            raise HTTPException(404, "Item version not found")
-        return PlainTextResponse(
-            read_blob(version.snapshot_path).decode("utf-8", errors="replace"),
-            headers={
-                "X-Content-Type-Options": "nosniff",
-                "Content-Security-Policy": "default-src 'none'",
-            },
-        )
-
-
-@app.post("/api/versions/{version_id}/normalize", status_code=202)
-def normalize(version_id: str, body: NormalizeRequest):
-    try:
-        return {"id": queue_normalize(version_id, body.force)}
-    except ValueError as exc:
-        raise HTTPException(409, str(exc)) from exc
-
-
-@app.post("/api/versions/{version_id}/reviews", status_code=201, response_model=ReviewView)
-def review(version_id: str, body: ReviewRequest):
-    with Session() as db:
-        run = db.get(NormalizeRun, body.run_id)
-        if not run or run.version_id != version_id or run.status != "succeeded":
-            raise HTTPException(409, "A successful run for this exact version is required")
-        record = HumanReview(version_id=version_id, **body.model_dump())
-        db.add(record)
-        db.commit()
-        return serialize(record)
-
-
-@app.get("/api/runs", response_model=list[RunView])
-def runs():
-    with Session() as db:
-        return [
-            serialize(r)
-            for r in db.scalars(
-                select(NormalizeRun).order_by(NormalizeRun.created_at.desc()).limit(100)
-            )
-        ]
-
-
-@app.post("/api/ai/resume")
-def resume(body: Actor):
-    resume_ai(body.actor)
-    return {"paused": False}
-
-
-@app.exception_handler(ValueError)
-def invalid_value(request, exc):
-    return JSONResponse({"detail": str(exc)}, status_code=422)
-
-
-from less.validation_api import router as validation_router  # noqa: E402
-
-app.include_router(validation_router)
-
-from less.editorial_api import router as editorial_router  # noqa: E402
-
-app.include_router(editorial_router)
-
-from less.cluster_audit import router as cluster_audit_router  # noqa: E402
-
-app.include_router(cluster_audit_router)
-
-from less.briefs import router as briefs_router  # noqa: E402
-
-app.include_router(briefs_router)
-
-from less.signals import router as signals_router  # noqa: E402
-
-app.include_router(signals_router)
-
-from less.assist_api import router as assist_router  # noqa: E402
-
-app.include_router(assist_router)
