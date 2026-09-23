@@ -38,3 +38,7 @@ make test
 ## Content Skill
 
 仓库级 Skill 位于 `.agents/skills/less-content/`。它可以被 Codex 自动发现，也可以显式使用 `$less-content`。Skill 只输出草稿，不会自动写入内容库；请在管理页检查并确认保留。
+
+内容发现采用混合来源策略：先处理任务明确指定的来源，再检查与主题相关的[首选来源清单](.agents/skills/less-content/references/preferred-sources.md)，覆盖不足或需要交叉验证时继续扩展搜索。该清单是版本化的搜索起点，不是白名单，也不会触发自动采集。
+
+观察范围和来源角色沿用原产品蓝图的 Coverage Map 与 Source Map，现由[当前 Content Skill 规范](docs/current/02-content-skill.md)维护；首选清单保留旧来源登记中的具体观察节点，并可按任务补充新节点。

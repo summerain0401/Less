@@ -1,6 +1,6 @@
 # Less 文档
 
-当前基线：2026-09-22 · 轻量 Less。
+当前基线：2026-09-23 · 轻量 Less。
 
 ## 当前规范
 
@@ -14,7 +14,7 @@
 
 内容获取由 Content Skill / Agent 完成；软件负责保存、组织和呈现值得留下的内容。优先跑通 Brief 保留、Today 阅读及原始来源访问，其他能力按真实需求增加。
 
-三份基线原文保持不变。当前代码已迁移到 SQLite、Brief / Topic / Source 最小内容模型，以及 Today、详情和精简管理界面；实现范围仍以这些文档为准。
+当前代码已迁移到 SQLite、Brief / Topic / Source 最小内容模型，以及 Today、详情和精简管理界面；实现范围仍以这三份文档为准。原蓝图的 Coverage Map 与 Source Map 已纳入当前 Content Skill 规范，旧采集实现不随之恢复。
 
 ## 历史资料
 
