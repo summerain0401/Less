@@ -16,6 +16,10 @@
 
 当前代码已迁移到 SQLite、Brief / Topic / Source 最小内容模型，以及 Today、详情和精简管理界面；实现范围仍以这三份文档为准。原蓝图的 Coverage Map 与 Source Map 已纳入当前 Content Skill 规范，旧采集实现不随之恢复。
 
+## 试扫记录
+
+- [2026-09-24 来源扩充试扫](research/source-expansion-trial-2026-09-24.md)：记录宽泛扫描、AI Coding / Agents 专题扫描的去重结果，以及社媒帖文的可访问性与核验成本。
+
 ## 历史资料
 
 旧重型 Content Engine 规范已移至 [archive/content-engine-prototype](archive/content-engine-prototype/ARCHIVED.md)，仅供追溯，不作为当前产品规范。原 Phase 1、Week 1–4 计划与旧验收清单不自动延续。

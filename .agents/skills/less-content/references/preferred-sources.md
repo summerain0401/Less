@@ -12,6 +12,8 @@ This list retains the concrete nodes from the original [Source Registry](../../.
 
 Do not add collection intervals, health status, authority scores, or selection metrics here. For a publisher claim about performance, impact, price, or comparative advantage, attribute the claim and seek independent support when it affects the conclusion.
 
+A person's blog and social account are one editorial node when they serve the same area of expertise. Follow the person's original posts for first-hand views or experience, and follow linked documents for product or research claims. Account visibility and follower counts are not selection criteria.
+
 ## Official models, products, and research
 
 | id | name and entry | role | topics | use and bias note |
@@ -26,6 +28,7 @@ Do not add collection intervals, health status, authority scores, or selection m
 | `xai-news` | [xAI News](https://x.ai/news) | `primary` | Models, APIs, Agents, Products | First-party announcements; performance comparisons require attribution or corroboration. |
 | `deepseek-news` | [DeepSeek Research & News](https://deepseek.com/en/news/) | `primary` | Models, Reasoning, Open Source, APIs | First-party releases; open technical reports, model cards, and repositories when available. |
 | `qwen-blog` | [Qwen Blog](https://qwen.ai/blog) | `primary` | Models, Multimodal, Open Source, Agents | First-party releases; confirm weights, licenses, and serving availability on concrete pages. |
+| `aisi-research` | [UK AI Security Institute Research](https://www.aisi.gov.uk/research) | `primary` | Frontier Evaluation, Safety, Agents, Research | Original government research; preserve methods and limits, and apply the Important threshold to specialized work. |
 
 ## AI coding, agents, and open-source engineering
 
@@ -38,7 +41,11 @@ Do not add collection intervals, health status, authority scores, or selection m
 | `gemini-cli-releases` | [Gemini CLI Releases](https://github.com/google-gemini/gemini-cli/releases) | `primary` | AI Coding, Agents, Developer Tools | Concrete version changes; filter release noise and check migration notices. |
 | `hugging-face-blog` | [Hugging Face Blog](https://huggingface.co/blog) | `primary` | Open Source, Models, Data, Agents, Inference | Mixes staff and community posts; identify the author and follow links to original artifacts. |
 | `github-engineering` | [GitHub Engineering](https://github.blog/engineering/) | `builders` | AI Coding, Agents, Engineering Practice | First-hand software engineering and platform practice; supplier perspective still needs scope and failure checks. |
+| `anthropic-engineering` | [Anthropic Engineering](https://www.anthropic.com/engineering) · [Claude Developers](https://claude.dev/) | `builders` | AI Coding, Agents, Context, Evaluation | Two first-party engineering surfaces; check both for relevant posts, and distinguish internal experience from generalizable results and shipped behavior. |
+| `shopify-engineering` | [Shopify Engineering](https://shopify.engineering/latest) | `builders` | AI Coding, Agents, Engineering Practice | First-hand production workflows; retain the project's conditions and the company's own perspective. |
+| `martin-fowler-gen-ai` | [Exploring Generative AI](https://martinfowler.com/articles/exploring-gen-ai.html) | `builders` | AI Coding, Agents, Engineering Practice, Voices | Named authors' experiments and reflections; check the author, method, and limits of each article. |
 | `pytorch-blog` | [PyTorch Blog](https://pytorch.org/blog/) | `builders` | Training, Inference, Frameworks | Project and ecosystem engineering; benchmark claims retain hardware and workload conditions. |
+| `opencompass` | [OpenCompass](https://github.com/open-compass/opencompass) | `primary` | Evaluation, Open Models, Multimodal, Developer Tools | Original evaluation framework and releases; a leaderboard result still requires the dataset and run configuration. |
 | `langgraph-releases` | [LangGraph Releases](https://github.com/langchain-ai/langgraph/releases) | `primary` | Agents, Orchestration, Developer Tools | Release record for the project; do not infer production benefit from a feature alone. |
 | `ollama-releases` | [Ollama Releases](https://github.com/ollama/ollama/releases) | `primary` | Local Models, Inference, Developer Tools | Release record for local model tooling; filter minor fixes unless materially useful. |
 
@@ -47,9 +54,16 @@ Do not add collection intervals, health status, authority scores, or selection m
 | id | name and entry | role | topics | use and bias note |
 | --- | --- | --- | --- | --- |
 | `arxiv` | [arXiv](https://arxiv.org/) | `discovery` | Research, Models, Reasoning, Agents | Search relevant `cs.AI`, `cs.CL`, and `cs.LG` categories, then cite the concrete paper page; a preprint is not peer review. |
+| `hugging-face-papers` | [Hugging Face Daily Papers](https://huggingface.co/papers) | `discovery` | Research, Models, Reasoning, Agents | Trending papers are leads; open the actual paper and artifacts, and do not treat votes as evidence. |
 | `metr-research` | [METR Research](https://metr.org/research/) | `intelligence` | Agents, Evaluation, Productivity, Safety | Third-party evaluation; preserve study design, sample, uncertainty, and disclosed relationships. |
-| `simon-willison` | [Simon Willison](https://simonwillison.net/) | `people` | AI Coding, Agents, Models, Tools | First-hand experiments and analysis are individual evidence, not universal outcomes. |
+| `epoch-ai-publications` | [Epoch AI Publications](https://epoch.ai/publications) | `intelligence` | Frontier, Evaluation, Compute, Industry | Original analysis and measurements; check data, methods, uncertainty, and funding or commissioned-work context where relevant. |
+| `artificial-analysis-evaluations` | [Artificial Analysis Evaluations](https://artificialanalysis.ai/evaluations) | `intelligence` | Models, Evaluation, Pricing, Agents | Direct measurements; preserve benchmark version, conditions, and disclosed commercial interests. |
+| `simon-willison` | [Simon Willison](https://simonwillison.net/) · [X](https://x.com/simonw) | `people` | AI Coding, Agents, Models, Tools | First-hand experiments and analysis are individual evidence, not universal outcomes; merge duplicate blog and X posts. |
 | `lilian-weng` | [Lilian Weng](https://lilianweng.github.io/) | `people` | Agents, Reasoning, Research | Strong synthesis but low frequency; follow citations back to original papers. |
+| `interconnects` | [Interconnects / Nathan Lambert](https://www.interconnects.ai/) · [X](https://x.com/natolambert) | `people` | Open Models, Frontier, Industry, Voices | Original analysis and evolving judgments; separate evidence from predictions and follow cited artifacts. |
+| `karpathy` | [Andrej Karpathy Blog](https://karpathy.github.io/) · [X](https://x.com/karpathy) | `people` | Models, AI Coding, Research, Voices | First-hand teaching, experiments, and views; long-form posts are low frequency and short posts need full context. |
+| `tibo-codex-x` | [Tibo Sottiaux / X](https://x.com/thsottiaux) | `people` | Codex, AI Coding, Agents, Products | First-hand Codex direction and product clarifications; verify rollout, access, and performance in official materials. |
+| `boris-cherny-x` | [Boris Cherny / X](https://x.com/bcherny) | `people` | Claude Code, AI Coding, Agents, Products | First-hand Claude Code explanations; verify shipped behavior in documentation or releases. |
 | `latent-space` | [Latent Space](https://www.latent.space/) | `intelligence` | AI Engineering, Agents, Industry | Interviews and analysis may reflect host, guest, employer, or investor interests. |
 | `hacker-news` | [Hacker News](https://news.ycombinator.com/) | `discovery` | Developer Practice, Failures, Open Source | Leads and counterexamples only; popularity and comments are not evidence for a core fact. |
 
@@ -70,3 +84,5 @@ Apply these rules after selecting topic-relevant entries:
 4. If a discovery entry surfaces a claim, follow it to the original source. Do not use a search result, category page, feed item, or discussion thread as a substitute for the concrete evidence page.
 5. Expand beyond this list when it lacks a relevant actor, geography, topic, opposing view, or direct source. Record material expansions in `task_note`.
 6. An inaccessible or inactive preferred source is a disclosed coverage limitation, not a reason to invent a result or lower the verification standard.
+7. For a social post, open the concrete post and check author, date, full wording, and surrounding thread. A person's own view or direct experience can be primary for that narrow claim; reposts, teasers, and product-effect claims require the linked original material or corroboration. If only a search snippet is visible, use it as a lead and report the access limit.
+8. Deduplicate the same claim across a person's blog, social account, and official announcement. Signals come from comparing supported material across events, not from a required social account or source count.

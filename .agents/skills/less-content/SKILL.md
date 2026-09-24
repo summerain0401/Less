@@ -27,6 +27,8 @@ When the task requires discovery, use the Coverage Map and Source Map in the [co
 
 The list is a search starting point, not an allowlist, a completeness promise, or a trust score. A preferred publisher's page still needs the same claim-level verification as any other source. For a broad daily scan, consider relevant Frontier, Builders, Voices, and cross-event Signals material across multiple organizations and source roles. Include intelligence or discovery routes when relevant. Do not visit every listed source merely to satisfy a quota.
 
+Selected social accounts can reveal first-hand views, direct experience, or early product clues. Open the concrete post, verify its author, date, wording, and thread context, then follow any cited documentation or evidence. A person's own view can be primary for that view; a repost, teaser, or claimed product effect does not establish that the product shipped or the effect is real. Treat inaccessible posts as leads only, and deduplicate the same claim across posts, blogs, and announcements.
+
 ## Work
 
 1. Find a small set of relevant leads, starting with original releases, documentation, papers, repositories, or first-hand accounts.
