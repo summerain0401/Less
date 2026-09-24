@@ -111,3 +111,114 @@ test("skip clears an unsaved draft without a write", async ({ page }) => {
   await expect(page.getByText("草稿已跳过，未写入内容库")).toBeVisible();
   expect(writes).toBe(0);
 });
+
+test("imports an array of Briefs with one confirmation", async ({ page }) => {
+  const saved: (typeof draft & { created_at: string; updated_at: null })[] = [];
+  const posted: string[] = [];
+  await page.route("**/api/**", async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    if (path === "/api/today") return route.fulfill({ json: { day: "2026-09-22", entries: saved } });
+    if (path === "/api/briefs" && request.method() === "GET") return route.fulfill({ json: saved });
+    if (path === "/api/briefs" && request.method() === "POST") {
+      const body = request.postDataJSON();
+      expect(Array.isArray(body)).toBe(false);
+      posted.push(body.id);
+      const created = { ...body, created_at: "2026-09-22T03:00:00Z", updated_at: null };
+      saved.push(created);
+      return route.fulfill({ status: 201, json: created });
+    }
+    return route.fulfill({ json: [] });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "管理" }).click();
+  const drafts = [
+    { ...draft, id: "batch-first", title: "First batch Brief" },
+    { ...draft, id: "batch-second", title: "Second batch Brief", sources: [{ ...draft.sources[0], url: "https://example.com/second" }] },
+  ];
+  await page.getByLabel("Brief JSON").fill(JSON.stringify(drafts));
+  await expect(page.getByText("2 条草稿结构检查通过，可以预览并保留。")).toBeVisible();
+  await expect(page.locator(".preview-item")).toHaveCount(2);
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.getByRole("button", { name: "确认保留 2 条" }).click();
+  await expect(page.getByText("2 条 Brief 已保留并进入今天")).toBeVisible();
+  expect(posted).toEqual(["batch-first", "batch-second"]);
+  await page.getByRole("button", { name: "Today" }).click();
+  await expect(page.getByRole("heading", { name: "First batch Brief" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Second batch Brief" })).toBeVisible();
+});
+
+test("rejects empty and duplicate-id arrays before saving", async ({ page }) => {
+  let writes = 0;
+  await page.route("**/api/**", async (route) => {
+    if (route.request().method() !== "GET") writes += 1;
+    const path = new URL(route.request().url()).pathname;
+    if (path === "/api/today") return route.fulfill({ json: { day: "2026-09-22", entries: [] } });
+    return route.fulfill({ json: [] });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "管理" }).click();
+  await page.getByLabel("Brief JSON").fill("[]");
+  await expect(page.getByRole("alert")).toContainText("Brief 数组不能为空");
+  await page.getByLabel("Brief JSON").fill(JSON.stringify([draft, { ...draft, title: "Duplicate" }]));
+  await expect(page.getByRole("alert")).toContainText("第 2 条：id fixture-brief 在本次数组中重复");
+  await expect(page.getByRole("button", { name: /确认保留/ })).toBeDisabled();
+  expect(writes).toBe(0);
+});
+
+test("keeps unsaved array entries after a partial failure", async ({ page }) => {
+  const saved: (typeof draft & { created_at: string; updated_at: null })[] = [];
+  const posted: string[] = [];
+  let failed = false;
+  await page.route("**/api/**", async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    if (path === "/api/today") return route.fulfill({ json: { day: "2026-09-22", entries: saved } });
+    if (path === "/api/briefs" && request.method() === "GET") return route.fulfill({ json: saved });
+    if (path === "/api/briefs" && request.method() === "POST") {
+      const body = request.postDataJSON();
+      posted.push(body.id);
+      if (body.id === "batch-second" && !failed) {
+        failed = true;
+        return route.fulfill({ status: 409, json: { detail: "临时冲突" } });
+      }
+      const created = { ...body, created_at: "2026-09-22T03:00:00Z", updated_at: null };
+      saved.push(created);
+      return route.fulfill({ status: 201, json: created });
+    }
+    return route.fulfill({ json: [] });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "管理" }).click();
+  const drafts = ["batch-first", "batch-second", "batch-third"].map((id) => ({ ...draft, id, title: id }));
+  await page.getByLabel("Brief JSON").fill(JSON.stringify(drafts));
+  await page.getByRole("button", { name: "确认保留 3 条" }).click();
+  await expect(page.getByText("已保留 1 条；剩余 2 条草稿仍在输入框中。")).toBeVisible();
+  await expect(page.getByText("第 2 条保存失败：临时冲突")).toBeVisible();
+  expect(JSON.parse(await page.getByLabel("Brief JSON").inputValue()).map((item: typeof draft) => item.id)).toEqual(["batch-second", "batch-third"]);
+  await page.getByRole("button", { name: "确认保留 2 条" }).click();
+  await expect(page.getByText("2 条 Brief 已保留并进入今天")).toBeVisible();
+  expect(posted).toEqual(["batch-first", "batch-second", "batch-second", "batch-third"]);
+});
+
+test("shows the full multi-paragraph facts in detail and draft preview", async ({ page }) => {
+  const facts = "此前，任务中断后需要重新开始，用户无法沿用已完成的步骤。\n\n这次发布增加了恢复入口：用户可以继续先前的任务，但仅限桌面端的指定版本；移动端尚未开放。";
+  const detailed = { ...draft, what_happened: facts, created_at: "2026-09-22T02:00:00Z", updated_at: null };
+  await page.route("**/api/**", async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path === "/api/today") return route.fulfill({ json: { day: "2026-09-22", entries: [detailed] } });
+    if (path === "/api/briefs") return route.fulfill({ json: [detailed] });
+    return route.fulfill({ json: [] });
+  });
+  await page.goto("/");
+  await expect(page.locator(".brief-card .what")).toHaveCSS("-webkit-line-clamp", "5");
+  await page.getByRole("button", { name: "阅读全文" }).click();
+  await expect(page.locator(".detail-page .fact-body")).toHaveText(facts);
+  await expect(page.locator(".detail-page .fact-body")).toHaveCSS("white-space", "pre-line");
+  await page.getByRole("button", { name: "返回" }).click();
+  await page.getByRole("button", { name: "管理" }).click();
+  await page.getByLabel("Brief JSON").fill(JSON.stringify({ ...draft, what_happened: facts }));
+  await expect(page.locator(".draft-preview .fact-body")).toHaveText(facts);
+  await expect(page.locator(".draft-preview .fact-body")).toHaveCSS("white-space", "pre-line");
+});

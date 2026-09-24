@@ -32,7 +32,7 @@ The list is a search starting point, not an allowlist, a completeness promise, o
 1. Find a small set of relevant leads, starting with original releases, documentation, papers, repositories, or first-hand accounts.
 2. Keep an item only when it is Important or Useful for a specific audience. Merge repeated coverage and identify the actual increment over retained Briefs.
 3. Open the concrete source pages and verify dates, availability, scope, conditions, and material claims. Distinguish publisher claims from independent confirmation.
-4. Write concise Chinese Briefs that separate verified facts, reader value, Less judgment, and uncertainty.
+4. Write clear Chinese Briefs that separate verified facts, reader value, Less judgment, and uncertainty. Make `what_happened` self-contained: explain the concrete change and the context, availability, and conditions needed to understand it, rather than compressing it into a one-line announcement. Follow the [content method](../../../docs/current/02-content-skill.md) for the writing standard.
 
 Do not create collection queues, candidates, events, evidence records, scores, or review gates. Do not save drafts to Less or call its API. Saving requires a separate, explicit user decision in the product.
 

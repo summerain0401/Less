@@ -100,6 +100,8 @@ input[type="date"] { border: 0; background: transparent; color: #2d382b; padding
 .brief-card h2 { font-family: "Newsreader", Georgia, serif; font-size: 28px; line-height: 1.25; margin: 24px 0 12px; }
 .brief-card p { line-height: 1.75; }
 .what { color: #4b5348; }
+.fact-body { white-space: pre-line; }
+.brief-card .what { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 5; overflow: hidden; }
 .why { border-left: 2px solid #9caf91; padding-left: 16px; margin: 12px 0 24px; }
 .why span { font-size: 10px; letter-spacing: 1px; color: #718269; }
 .why p { margin: 6px 0 0; }
@@ -154,6 +156,9 @@ textarea { width: 100%; min-height: 540px; resize: vertical; border: 1px solid #
 .draft-preview h4 { font-size: 11px; color: #64715f; margin: 28px 0 5px; }
 .draft-preview p { line-height: 1.7; overflow-wrap: anywhere; }
 .draft-preview small, .muted { color: #838b7e; }
+.preview-stack { display: grid; gap: 30px; }
+.preview-item + .preview-item { border-top: 1px solid #e2e6dc; padding-top: 26px; }
+.preview-index { color: #64715f; font-size: 11px; overflow-wrap: anywhere; }
 .saved-list { margin-top: 24px; }
 .saved-row { display: flex; justify-content: space-between; gap: 20px; padding: 17px 0; border-top: 1px solid #e2e6dc; }
 .saved-row > div:first-child { display: grid; gap: 5px; }

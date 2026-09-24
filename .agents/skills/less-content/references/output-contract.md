@@ -20,7 +20,7 @@ Each item in `retention_ready` must be a JSON object accepted by `POST /api/brie
       "published_at": "2026-09-22T09:00:00+08:00"
     }
   ],
-  "what_happened": "已核实的事实。",
+  "what_happened": "主体及此前状态。此次具体新增、移除或改变了什么，以及有依据的结果。当前可用范围和影响理解的关键条件。",
   "why_it_matters": "为什么重要或有用、影响谁。",
   "our_take": null,
   "uncertainty": null
@@ -36,6 +36,7 @@ Rules:
 - `confidence` is `high` or `medium`; low-confidence leads belong in `needs_verification`.
 - `sources` contains 1–20 unique, concrete HTTP(S) page links. At least one source has `primary: true`.
 - Source `type` is one of `official_docs`, `release`, `paper`, `blog`, `media`, or `other`.
+- `what_happened` must stand on its own: give enough verified background, concrete change, current status, and material conditions for a reader to understand the event without opening the source. Use short paragraphs (`\n\n` in JSON) when helpful; do not replace substance with a one-line announcement or move interpretation into this field.
 - Medium confidence requires a non-empty `uncertainty`. Known limitations must not be hidden behind `null`.
 - `our_take` is `null` when no useful independent judgment exists.
 - Output plain JSON, without placeholders or comments, so the management page can parse it directly.

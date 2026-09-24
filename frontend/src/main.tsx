@@ -153,7 +153,7 @@ function BriefCard({ brief, onOpen }: { brief: Brief; onOpen: (brief: Brief) => 
         <time>{displayDate(brief.published_at)}</time>
       </div>
       <h2>{brief.title}</h2>
-      <p className="what">{brief.what_happened}</p>
+      <p className="what fact-body">{brief.what_happened}</p>
       <div className="why">
         <span>为什么值得关注</span>
         <p>{brief.why_it_matters}</p>
@@ -178,7 +178,7 @@ function BriefDetail({ brief, onBack }: { brief: Brief; onBack: () => void }) {
       <h1>{brief.title}</h1>
       <section>
         <h2>发生了什么</h2>
-        <p>{brief.what_happened}</p>
+        <p className="fact-body">{brief.what_happened}</p>
       </section>
       <section>
         <h2>为什么值得关注</h2>
@@ -265,7 +265,7 @@ const example: BriefDraft = {
   useful: false,
   confidence: "high",
   sources: [{ name: "原始来源", url: "https://example.com/specific-page", type: "official_docs", primary: true, published_at: null }],
-  what_happened: "已经核实的事实。",
+  what_happened: "主体及此前状态。此次具体新增、移除或改变了什么，以及有依据的结果。当前可用范围和影响理解的关键条件。",
   why_it_matters: "具体影响谁，以及为什么值得关注。",
   our_take: null,
   uncertainty: null,
@@ -306,6 +306,27 @@ function validateDraft(value: unknown, editing: boolean): string[] {
   return errors;
 }
 
+function validateInput(value: unknown, editing: boolean): string[] {
+  if (editing) {
+    if (Array.isArray(value)) return ["编辑时只能使用单个 Brief 对象"];
+    return validateDraft(value, true);
+  }
+  const drafts = Array.isArray(value) ? value : [value];
+  if (drafts.length === 0) return ["Brief 数组不能为空"];
+  const errors = drafts.flatMap((draft, index) =>
+    validateDraft(draft, false).map((error) => `第 ${index + 1} 条：${error}`),
+  );
+  const ids = new Set<string>();
+  drafts.forEach((draft, index) => {
+    if (!draft || typeof draft !== "object" || Array.isArray(draft)) return;
+    const id = (draft as Record<string, unknown>).id;
+    if (typeof id !== "string" || !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(id)) return;
+    if (ids.has(id)) errors.push(`第 ${index + 1} 条：id ${id} 在本次数组中重复`);
+    ids.add(id);
+  });
+  return errors;
+}
+
 function stripMetadata(brief: Brief): BriefFields {
   const { id: _id, created_at: _created, updated_at: _updated, ...fields } = brief;
   return fields;
@@ -313,8 +334,9 @@ function stripMetadata(brief: Brief): BriefFields {
 
 function ManagePage({ refreshKey, onChanged, onOpen }: { refreshKey: number; onChanged: () => void; onOpen: (brief: Brief) => void }) {
   const [text, setText] = useState(() => JSON.stringify(example, null, 2));
-  const [parsed, setParsed] = useState<BriefDraft | BriefFields | null>(example);
+  const [parsed, setParsed] = useState<BriefDraft[] | BriefFields | null>([example]);
   const [errors, setErrors] = useState<string[]>([]);
+  const [saveError, setSaveError] = useState("");
   const [briefs, setBriefs] = useState<Brief[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
@@ -327,9 +349,9 @@ function ManagePage({ refreshKey, onChanged, onOpen }: { refreshKey: number; onC
   useEffect(() => {
     try {
       const value = JSON.parse(text);
-      const nextErrors = validateDraft(value, editingId !== null);
+      const nextErrors = validateInput(value, editingId !== null);
       setErrors(nextErrors);
-      setParsed(nextErrors.length ? null : value);
+      setParsed(nextErrors.length ? null : editingId ? value : Array.isArray(value) ? value : [value]);
     } catch {
       setErrors(["JSON 格式无效"]);
       setParsed(null);
@@ -340,15 +362,38 @@ function ManagePage({ refreshKey, onChanged, onOpen }: { refreshKey: number; onC
     if (!parsed) return;
     setBusy(true);
     setNotice("");
+    setSaveError("");
     try {
-      if (editingId) await api<Brief>(`/briefs/${editingId}`, jsonRequest("PUT", parsed));
-      else await api<Brief>("/briefs", jsonRequest("POST", parsed));
-      setNotice(editingId ? "更正已保存" : "Brief 已保留并进入今天");
-      setEditingId(null);
-      setText(JSON.stringify(example, null, 2));
-      onChanged();
+      if (editingId) {
+        if (Array.isArray(parsed)) return;
+        await api<Brief>(`/briefs/${editingId}`, jsonRequest("PUT", parsed));
+        setNotice("更正已保存");
+        setEditingId(null);
+        setText(JSON.stringify(example, null, 2));
+        onChanged();
+      } else {
+        if (!Array.isArray(parsed)) return;
+        let saved = 0;
+        try {
+          for (const draft of parsed) {
+            await api<Brief>("/briefs", jsonRequest("POST", draft));
+            saved += 1;
+          }
+        } catch (reason) {
+          setSaveError(`第 ${saved + 1} 条保存失败：${(reason as Error).message}`);
+          if (saved > 0) {
+            setNotice(`已保留 ${saved} 条；剩余 ${parsed.length - saved} 条草稿仍在输入框中。`);
+            setText(JSON.stringify(parsed.slice(saved), null, 2));
+            onChanged();
+          }
+          return;
+        }
+        setNotice(saved === 1 ? "Brief 已保留并进入今天" : `${saved} 条 Brief 已保留并进入今天`);
+        setText(JSON.stringify(example, null, 2));
+        onChanged();
+      }
     } catch (reason) {
-      setErrors([(reason as Error).message]);
+      setSaveError((reason as Error).message);
     } finally {
       setBusy(false);
     }
@@ -371,29 +416,37 @@ function ManagePage({ refreshKey, onChanged, onOpen }: { refreshKey: number; onC
   return (
     <>
       <PageIntro eyebrow="MANAGE" title="只保留值得留下的内容">
-        粘贴 Content Skill 交付的 JSON，先检查内容本身，再决定保留或跳过。
+        粘贴单条 Brief 对象或 Brief 对象数组，先检查内容本身，再决定保留或跳过。
       </PageIntro>
       {notice && <Notice>{notice}</Notice>}
+      {saveError && <Notice error>{saveError}</Notice>}
       <div className="manage-layout">
         <section className="editor-panel">
           <div className="panel-heading">
             <h2>{editingId ? `更正 ${editingId}` : "导入 Brief 草稿"}</h2>
-            <button onClick={() => { setEditingId(null); setText(JSON.stringify(example, null, 2)); setNotice("草稿已跳过，未写入内容库"); }}>跳过 / 清空</button>
+            <button disabled={busy} onClick={() => { setEditingId(null); setText(JSON.stringify(example, null, 2)); setSaveError(""); setNotice("草稿已跳过，未写入内容库"); }}>跳过 / 清空</button>
           </div>
           <label htmlFor="draft-json">Brief JSON</label>
-          <textarea id="draft-json" aria-label="Brief JSON" value={text} onChange={(event) => setText(event.target.value)} spellCheck={false} />
+          <textarea id="draft-json" aria-label="Brief JSON" value={text} onChange={(event) => { setText(event.target.value); setSaveError(""); setNotice(""); }} disabled={busy} spellCheck={false} />
           {errors.length > 0 ? (
             <div className="validation-errors" role="alert">{errors.map((error) => <p key={error}>{error}</p>)}</div>
           ) : (
-            <p className="valid">结构检查通过，可以预览并保留。</p>
+            <p className="valid">{!editingId && Array.isArray(parsed) && parsed.length > 1 ? `${parsed.length} 条草稿结构检查通过，可以预览并保留。` : "结构检查通过，可以预览并保留。"}</p>
           )}
           <button className="primary-action" disabled={!parsed || busy} onClick={() => void save()}>
-            {editingId ? "保存更正" : "确认保留"}
+            {editingId ? "保存更正" : Array.isArray(parsed) && parsed.length > 1 ? `确认保留 ${parsed.length} 条` : "确认保留"}
           </button>
         </section>
         <section className="preview-panel">
-          <h2>保存前预览</h2>
-          {parsed ? <DraftPreview draft={parsed} /> : <p className="muted">修正左侧问题后显示预览。</p>}
+          <h2>保存前预览{Array.isArray(parsed) ? ` · ${parsed.length} 条` : ""}</h2>
+          {parsed ? Array.isArray(parsed) ? (
+            <div className="preview-stack">{parsed.map((draft, index) => (
+              <div className="preview-item" key={draft.id}>
+                <p className="preview-index">第 {index + 1} 条 · {draft.id}</p>
+                <DraftPreview draft={draft} />
+              </div>
+            ))}</div>
+          ) : <DraftPreview draft={parsed} /> : <p className="muted">修正左侧问题后显示预览。</p>}
         </section>
       </div>
       <section className="saved-list">
@@ -404,7 +457,7 @@ function ManagePage({ refreshKey, onChanged, onOpen }: { refreshKey: number; onC
             <div><strong>{brief.title}</strong><span>{brief.id} · {displayDate(brief.created_at)}</span></div>
             <div>
               <button onClick={() => onOpen(brief)}>查看</button>
-              <button onClick={() => { setEditingId(brief.id); setText(JSON.stringify(stripMetadata(brief), null, 2)); window.scrollTo({ top: 0, behavior: "smooth" }); }}>编辑</button>
+              <button disabled={busy} onClick={() => { setEditingId(brief.id); setText(JSON.stringify(stripMetadata(brief), null, 2)); setSaveError(""); setNotice(""); window.scrollTo({ top: 0, behavior: "smooth" }); }}>编辑</button>
               <button className="danger" disabled={busy} onClick={() => void remove(brief)}>删除</button>
             </div>
           </div>
@@ -420,7 +473,7 @@ function DraftPreview({ draft }: { draft: BriefDraft | BriefFields }) {
       <div className="tags">{draft.topics.map((topic) => <span key={topic}>{topic}</span>)}</div>
       <h3>{draft.title}</h3>
       <small>{displayDate(draft.published_at)} · {draft.confidence}</small>
-      <h4>发生了什么</h4><p>{draft.what_happened}</p>
+      <h4>发生了什么</h4><p className="fact-body">{draft.what_happened}</p>
       <h4>为什么值得关注</h4><p>{draft.why_it_matters}</p>
       {draft.our_take && <><h4>Less 怎么看</h4><p>{draft.our_take}</p></>}
       {draft.uncertainty && <><h4>限制</h4><p>{draft.uncertainty}</p></>}
