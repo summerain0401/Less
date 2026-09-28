@@ -39,4 +39,32 @@ Rules:
 - `what_happened` must stand on its own: give enough verified background, concrete change, current status, and material conditions for a reader to understand the event without opening the source. Use short paragraphs (`\n\n` in JSON) when helpful; do not replace substance with a one-line announcement or move interpretation into this field.
 - Medium confidence requires a non-empty `uncertainty`. Known limitations must not be hidden behind `null`.
 - `our_take` is `null` when no useful independent judgment exists.
-- Output plain JSON, without placeholders or comments, so the management page can parse it directly.
+- Each saveable Brief is plain JSON without placeholders or comments, so the management page can parse it directly.
+
+## Time-bounded discovery batch
+
+For a time-bounded scan, keep the saveable Briefs in `retention_ready` and wrap them with the process note below. Copy only `retention_ready` into the Less management page. The wrapper is for delivery and local checking, not a new stored Less object.
+
+```json
+{
+  "retention_ready": [],
+  "needs_verification": [],
+  "task_note": {
+    "window_start": "2026-09-26T10:00:00+08:00",
+    "window_end": "2026-09-28T10:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "time_basis": "first_primary_publication",
+    "scan_scope": "broad",
+    "coverage_considered": ["Frontier", "Builders", "Voices", "Signals"],
+    "preferred_sources_checked": ["OpenAI News"],
+    "expanded_sources_used": [],
+    "access_limitations": [],
+    "deduplication_basis": "Compared with retained Brief IDs and source links.",
+    "no_item_qualified": true
+  }
+}
+```
+
+Use the actual timestamps and sources checked; the values above only illustrate the shape. `scan_scope` is `broad` or `focused`. For a broad scan, `preferred_sources_checked` cannot be empty. `needs_verification` contains readable strings, not saveable Brief objects. A first-primary-source date that is outside the exact window is excluded, even if a newer article discusses it. A date-only source on a partly covered boundary day remains unverified unless a reliable publication time is found. If the user explicitly asks for older events with new material changes, explain that different selection basis in the task note and assess the change manually rather than using the strict-window checker.
+
+Run `.venv/bin/python .agents/skills/less-content/scripts/check_batch.py <draft.json> --existing-briefs <briefs.json>` before delivery, providing the complete unfiltered JSON array from the read-only `/api/briefs` endpoint. Use `--dedup-unavailable` only when retained Briefs cannot be obtained. The checker applies the same Brief field validation as the Less API, checks the declared window against the first primary source, and detects exact ID/source-link duplicates in the provided retained Brief list. It does not verify that source pages were opened, that the stated publication time is true, or that the item is worth reading.

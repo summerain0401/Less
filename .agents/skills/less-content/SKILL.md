@@ -17,6 +17,8 @@ Before working, read the current project rules:
 
 Use the time range, timezone, topics, reader need, available sources, and recent retained Briefs supplied by the task. If a non-critical input is missing, choose a reasonable narrow default and disclose it. Do not claim exhaustive coverage.
 
+For rolling windows such as “past 48 hours,” record the exact start and end with timezone before searching. Unless the user asks for coverage of older events, use the first publication of the concrete primary source to decide whether an item is in range. A later report, repost, or page update does not reset that date. If a date-only source falls on a partial boundary day and its time cannot be established, put the lead in `needs_verification` instead of treating it as in range.
+
 ## Source strategy
 
 When the task requires discovery, use the Coverage Map and Source Map in the [content method](../../../docs/current/02-content-skill.md), then read [the preferred source list](references/preferred-sources.md) before searching. Use this order:
@@ -36,7 +38,7 @@ Selected social accounts can reveal first-hand views, direct experience, or earl
 3. Open the concrete source pages and verify dates, availability, scope, conditions, and material claims. Distinguish publisher claims from independent confirmation.
 4. Write clear Chinese Briefs that separate verified facts, reader value, Less judgment, and uncertainty. Make `what_happened` self-contained: explain the concrete change and the context, availability, and conditions needed to understand it, rather than compressing it into a one-line announcement. Follow the [content method](../../../docs/current/02-content-skill.md) for the writing standard.
 
-Do not create collection queues, candidates, events, evidence records, scores, or review gates. Do not save drafts to Less or call its API. Saving requires a separate, explicit user decision in the product.
+Do not create collection queues, candidates, events, evidence records, scores, or review gates. Do not save drafts to Less or call its write API. A read-only Brief listing may be used for deduplication; if unavailable, disclose the limit. Saving requires a separate, explicit user decision in the product.
 
 ## Deliver
 
@@ -47,3 +49,5 @@ Read [the output contract](references/output-contract.md) before delivering. Ret
 - `task_note`: the actual search range, relevant Coverage considered, preferred sources checked, any expanded sources used, access limitations, deduplication basis, and whether no item qualified.
 
 An empty `retention_ready` list is valid. Never invent a link, date, quote, result, or first-hand experience. Keep stable IDs unchanged when correcting an existing Brief.
+
+For a time-bounded discovery task, prepare the [structured task note and batch](references/output-contract.md), then run `.venv/bin/python .agents/skills/less-content/scripts/check_batch.py <draft.json> --existing-briefs <briefs.json>` before delivery. Supply the complete, unfiltered read-only `/api/briefs` list for deduplication. If retained Briefs cannot be accessed, use `--dedup-unavailable` and state that limit in `task_note`. Resolve checker errors by correcting the source/date or moving the item to `needs_verification`; do not change dates to make an item pass. The checker validates stated dates, structure, and exact ID/source-link duplicates; it cannot prove pages were read or decide editorial value. Review those against the actual opened sources and tool results.
