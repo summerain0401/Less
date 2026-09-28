@@ -51,13 +51,16 @@ def batch(items):
     }
 
 
-def run_check(tmp_path, items, existing=None):
+def run_check(tmp_path, items, existing=None, allow_date_only_overlap=False):
     draft = tmp_path / "draft.json"
     retained = tmp_path / "retained.json"
     draft.write_text(json.dumps(batch(items)), encoding="utf-8")
     retained.write_text(json.dumps(existing or []), encoding="utf-8")
+    command = [sys.executable, str(CHECKER), str(draft), "--existing-briefs", str(retained)]
+    if allow_date_only_overlap:
+        command.append("--allow-date-only-overlap")
     return subprocess.run(
-        [sys.executable, str(CHECKER), str(draft), "--existing-briefs", str(retained)],
+        command,
         capture_output=True,
         text=True,
         check=False,
@@ -88,6 +91,14 @@ def test_date_only_boundary_is_ambiguous(tmp_path):
     result = run_check(tmp_path, [brief("2026-09-26", "2026-09-26")])
     assert result.returncode == 1
     assert "ambiguous" in result.stderr
+
+
+def test_automation_allows_date_only_overlap_but_not_old_timestamps(tmp_path):
+    assert run_check(
+        tmp_path, [brief("2026-09-26", "2026-09-26")], allow_date_only_overlap=True
+    ).returncode == 0
+    old = brief("2026-09-25T18:00:00+08:00", "2026-09-25")
+    assert run_check(tmp_path, [old], allow_date_only_overlap=True).returncode == 1
 
 
 def test_existing_brief_id_or_source_link_is_rejected(tmp_path):

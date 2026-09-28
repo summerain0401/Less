@@ -13,6 +13,12 @@ class Settings(BaseSettings):
 
     database_url: str = f"sqlite:///{ROOT / 'data' / 'less.db'}"
     timezone: str = "Asia/Shanghai"
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    mail_from: str = ""
+    mail_to: str = ""
 
     @field_validator("timezone")
     @classmethod

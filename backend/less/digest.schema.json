@@ -1,0 +1,62 @@
+{
+  "type": "object",
+  "properties": {
+    "retention_ready": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string"},
+          "title": {"type": "string"},
+          "published_at": {"type": ["string", "null"]},
+          "topics": {"type": "array", "items": {"type": "string"}},
+          "important": {"type": "boolean"},
+          "useful": {"type": "boolean"},
+          "confidence": {"type": "string"},
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {"type": "string"},
+                "url": {"type": "string"},
+                "type": {"type": "string"},
+                "primary": {"type": "boolean"},
+                "published_at": {"type": ["string", "null"]}
+              },
+              "required": ["name", "url", "type", "primary", "published_at"],
+              "additionalProperties": false
+            }
+          },
+          "what_happened": {"type": "string"},
+          "why_it_matters": {"type": "string"},
+          "our_take": {"type": ["string", "null"]},
+          "uncertainty": {"type": ["string", "null"]}
+        },
+        "required": ["id", "title", "published_at", "topics", "important", "useful", "confidence", "sources", "what_happened", "why_it_matters", "our_take", "uncertainty"],
+        "additionalProperties": false
+      }
+    },
+    "needs_verification": {"type": "array", "items": {"type": "string"}},
+    "task_note": {
+      "type": "object",
+      "properties": {
+        "window_start": {"type": "string"},
+        "window_end": {"type": "string"},
+        "timezone": {"type": "string"},
+        "time_basis": {"type": "string"},
+        "scan_scope": {"type": "string"},
+        "coverage_considered": {"type": "array", "items": {"type": "string"}},
+        "preferred_sources_checked": {"type": "array", "items": {"type": "string"}},
+        "expanded_sources_used": {"type": "array", "items": {"type": "string"}},
+        "access_limitations": {"type": "array", "items": {"type": "string"}},
+        "deduplication_basis": {"type": "string"},
+        "no_item_qualified": {"type": "boolean"}
+      },
+      "required": ["window_start", "window_end", "timezone", "time_basis", "scan_scope", "coverage_considered", "preferred_sources_checked", "expanded_sources_used", "access_limitations", "deduplication_basis", "no_item_qualified"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["retention_ready", "needs_verification", "task_note"],
+  "additionalProperties": false
+}

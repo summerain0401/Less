@@ -82,3 +82,16 @@ class BriefTopic(Base):
 
     brief: Mapped[Brief] = relationship(back_populates="topic_links")
     topic: Mapped[Topic] = relationship(back_populates="brief_links")
+
+
+class DigestRun(Base):
+    __tablename__ = "digest_runs"
+
+    day: Mapped[str] = mapped_column(String(10), primary_key=True)
+    slot: Mapped[str] = mapped_column(String(10), primary_key=True)
+    status: Mapped[str] = mapped_column(String(20))
+    started_at: Mapped[str] = mapped_column(String(40))
+    finished_at: Mapped[str | None] = mapped_column(String(40))
+    brief_ids_json: Mapped[str] = mapped_column(Text, default="[]")
+    email_sent_at: Mapped[str | None] = mapped_column(String(40))
+    error: Mapped[str | None] = mapped_column(Text)

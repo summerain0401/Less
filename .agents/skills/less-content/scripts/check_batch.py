@@ -72,7 +72,12 @@ def string_list(value: object, label: str, errors: list[str]) -> list[str]:
     return value
 
 
-def check(batch: object, existing: object | None, dedup_unavailable: bool) -> list[str]:
+def check(
+    batch: object,
+    existing: object | None,
+    dedup_unavailable: bool,
+    allow_date_only_overlap: bool = False,
+) -> list[str]:
     errors: list[str] = []
     if not isinstance(batch, dict):
         return ["batch: expected an object"]
@@ -150,8 +155,17 @@ def check(batch: object, existing: object | None, dedup_unavailable: bool) -> li
             errors.append(f"{label}: first primary source needs a publication date")
             continue
         primary_interval = publication_interval(primary.published_at, zone)
-        if start and end and start < end and not inside_window(primary_interval, start, end):
-            errors.append(f"{label}: first primary publication is outside or ambiguous at the window boundary")
+        if start and end and start < end:
+            date_only_overlap = (
+                allow_date_only_overlap
+                and len(primary.published_at) == 10
+                and primary_interval[0] < end
+                and primary_interval[1] > start
+            )
+            if not inside_window(primary_interval, start, end) and not date_only_overlap:
+                errors.append(
+                    f"{label}: first primary publication is outside or ambiguous at the window boundary"
+                )
         if not brief.published_at:
             errors.append(f"{label}: top-level published_at is required for a time-bounded scan")
         elif not compatible(publication_interval(brief.published_at, zone), primary_interval):
@@ -165,6 +179,11 @@ def main() -> int:
     dedup = parser.add_mutually_exclusive_group(required=True)
     dedup.add_argument("--existing-briefs", type=Path)
     dedup.add_argument("--dedup-unavailable", action="store_true")
+    parser.add_argument(
+        "--allow-date-only-overlap",
+        action="store_true",
+        help="Allow a date-only primary source whose local calendar day overlaps the window",
+    )
     args = parser.parse_args()
     try:
         batch = json.loads(args.batch.read_text(encoding="utf-8"))
@@ -172,7 +191,7 @@ def main() -> int:
     except (OSError, json.JSONDecodeError) as exc:
         print(f"Input error: {exc}", file=sys.stderr)
         return 2
-    errors = check(batch, existing, args.dedup_unavailable)
+    errors = check(batch, existing, args.dedup_unavailable, args.allow_date_only_overlap)
     if errors:
         for error in errors:
             print(f"ERROR: {error}", file=sys.stderr)

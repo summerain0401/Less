@@ -23,6 +23,7 @@ def main():
     commands = [
         ([str(BIN / "uvicorn"), "less.api:app", "--host", "127.0.0.1", "--port", "8000"], ROOT),
         (["npm", "run", "dev"], ROOT / "frontend"),
+        ([str(BIN / "less"), "scheduler"], ROOT),
     ]
     children: list[subprocess.Popen] = []
     failed = False
@@ -34,7 +35,7 @@ def main():
     try:
         for command, cwd in commands:
             children.append(subprocess.Popen(command, cwd=cwd, start_new_session=True))
-        print("Less: http://127.0.0.1:5173 — Ctrl+C stops both processes.", flush=True)
+        print("Less: http://127.0.0.1:5173 — Ctrl+C stops all three processes.", flush=True)
         while all(child.poll() is None for child in children):
             time.sleep(1)
         failed = True
