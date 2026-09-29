@@ -42,6 +42,15 @@ class Source(Base):
     )
 
 
+class SourceKey(Base):
+    __tablename__ = "source_keys"
+
+    source_id: Mapped[str] = mapped_column(
+        ForeignKey("sources.id", ondelete="CASCADE"), primary_key=True
+    )
+    key: Mapped[str] = mapped_column(Text, index=True)
+
+
 class BriefSource(Base):
     __tablename__ = "brief_sources"
 

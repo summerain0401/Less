@@ -17,21 +17,21 @@ from email.message import EmailMessage
 from email.utils import format_datetime, formataddr, make_msgid
 from html import escape
 from pathlib import Path
-from urllib.parse import urlsplit, urlunsplit
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
-from less.api import BriefCreate, brief_view, get_brief, load_options, replace_content, utc_now
+from less.api import BriefCreate, brief_view, get_brief, replace_content, utc_now
 from less.config import ROOT, settings
 from less.db import Session, init_db
+from less.dedup import exact_ids, related_briefs
 from less.models import Brief, DigestRun
 
 SLOTS = {"morning": day_time(6), "evening": day_time(18)}
 SLOT_NAMES = {"morning": "早间", "evening": "晚间"}
 CHECKER = ROOT / ".agents/skills/less-content/scripts/check_batch.py"
 SCHEMA = Path(__file__).with_name("digest.schema.json")
+DEDUP_SCHEMA = Path(__file__).with_name("dedup.schema.json")
 MAX_START_LATENESS = timedelta(minutes=1)
 
 
@@ -53,45 +53,7 @@ def slot_is_due(due: datetime, now: datetime) -> bool:
     return due <= now < due + MAX_START_LATENESS
 
 
-def all_briefs() -> list[dict]:
-    with Session() as db:
-        rows = db.scalars(select(Brief).options(*load_options()).order_by(Brief.created_at)).unique()
-        return [brief_view(row) for row in rows]
-
-
-def url_key(value: str) -> str:
-    parts = urlsplit(value)
-    return urlunsplit((parts.scheme.lower(), parts.netloc.lower(), parts.path.rstrip("/"), parts.query, ""))
-
-
-def remove_exact_duplicates(batch: dict, existing: list[dict]) -> dict:
-    """Drop repeat IDs or source URLs before the strict batch checker runs."""
-    seen_ids = {item["id"] for item in existing}
-    seen_urls = {url_key(source["url"]) for item in existing for source in item["sources"]}
-    retained = []
-    for item in batch["retention_ready"]:
-        if not isinstance(item, dict) or not isinstance(item.get("id"), str):
-            retained.append(item)
-            continue
-        sources = item.get("sources")
-        if not isinstance(sources, list) or any(
-            not isinstance(source, dict) or not isinstance(source.get("url"), str)
-            for source in sources
-        ):
-            retained.append(item)
-            continue
-        keys = [url_key(source["url"]) for source in sources]
-        if item["id"] in seen_ids or any(key in seen_urls for key in keys):
-            continue
-        retained.append(item)
-        seen_ids.add(item["id"])
-        seen_urls.update(keys)
-    batch["retention_ready"] = retained
-    batch["task_note"]["no_item_qualified"] = not retained
-    return batch
-
-
-def _guidance_workspace(target: Path, existing: list[dict]) -> None:
+def _guidance_workspace(target: Path) -> None:
     skill_source = ROOT / ".agents/skills/less-content"
     skill_target = target / ".agents/skills/less-content"
     (skill_target / "references").mkdir(parents=True)
@@ -101,11 +63,9 @@ def _guidance_workspace(target: Path, existing: list[dict]) -> None:
         shutil.copy2(skill_source / "references" / name, skill_target / "references" / name)
     docs_target = target / "docs/current"
     docs_target.mkdir(parents=True)
-    for name in ("00-less-principles.md", "01-less-lite-architecture.md", "02-content-skill.md"):
+    for name in ("00-less-principles.md", "01-less-lite-architecture.md", "02-content-skill.md",
+                 "03-brief-deduplication.md"):
         shutil.copy2(ROOT / "docs/current" / name, docs_target / name)
-    (target / "existing-briefs.json").write_text(
-        json.dumps(existing, ensure_ascii=False, default=str), encoding="utf-8"
-    )
 
 
 def _codex_environment() -> dict[str, str]:
@@ -114,18 +74,113 @@ def _codex_environment() -> dict[str, str]:
     return {name: os.environ[name] for name in names if name in os.environ}
 
 
-def discover_content(slot: str, end: datetime, existing: list[dict]) -> dict:
+def _run_codex(workspace: Path, output: Path, schema: Path, prompt: str,
+               search: bool = False) -> dict:
+    command = ["codex"]
+    if search:
+        command.append("--search")
+    command.extend([
+        "--ask-for-approval", "never", "exec", "--ignore-user-config", "--sandbox", "read-only",
+        "--ephemeral", "--skip-git-repo-check", "--cd", str(workspace),
+        "--output-schema", str(schema), "--output-last-message", str(output), prompt,
+    ])
+    try:
+        result = subprocess.run(
+            command, capture_output=True, text=True, timeout=3600,
+            env=_codex_environment(), stdin=subprocess.DEVNULL, check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise RuntimeError(f"Codex content task could not complete: {exc}") from exc
+    if result.returncode != 0:
+        raise RuntimeError(f"Codex content task failed (exit {result.returncode}): "
+                           f"{result.stderr.strip()[-1600:]}")
+    try:
+        return json.loads(output.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError("Codex did not return valid structured output") from exc
+
+
+def review_duplicates(batch: dict, workspace: Path) -> dict:
+    items = batch["retention_ready"]
+    if not items:
+        batch["task_note"]["deduplication_basis"] = "No retention-ready Briefs to compare."
+        return batch
+    for item in items:
+        BriefCreate.model_validate(item)
+    with Session() as db:
+        comparison = [{
+            "id": item["id"],
+            "exact_ids": sorted(exact_ids(db, item["id"],
+                                    [source["url"] for source in item["sources"]])),
+            "related": related_briefs(db, item),
+        } for item in items]
+    if len(items) == 1 and not comparison[0]["related"]:
+        batch["task_note"]["deduplication_basis"] = (
+            "No retained Brief matched the candidate in the full-library index."
+        )
+        return batch
+    (workspace / "related-briefs.json").write_text(
+        json.dumps(comparison, ensure_ascii=False), encoding="utf-8"
+    )
+    output = workspace / "dedup-decisions.json"
+    prompt = (
+        "仅执行 Less Brief 去重判断。阅读 batch.json 中的 retention_ready 与 "
+        "related-briefs.json 中按全库索引召回的相关旧 Brief。"
+        "也比较本批候选之间的重复。对每条候选返回 retain、skip 或 review："
+        "同一实质变化的重复报道选 skip；"
+        "确有独立新进展选 retain；需要更新旧 Brief 或难以区分时选 review。"
+        "共享背景来源链接不自动等于重复，须比较具体新增事实。"
+        "每条给出简短、具体的理由与相关旧 Brief ID。"
+        "不得搜索、写文件或修改候选内容；只输出符合 JSON Schema 的 decisions。"
+    )
+    decisions = _run_codex(workspace, output, DEDUP_SCHEMA, prompt)
+    entries = decisions.get("decisions") if isinstance(decisions, dict) else None
+    if not isinstance(entries, list) or len(entries) != len(items):
+        raise RuntimeError("Dedup decisions do not cover every candidate")
+    by_id = {entry.get("id"): entry for entry in entries if isinstance(entry, dict)}
+    if len(by_id) != len(items) or set(by_id) != {item["id"] for item in items}:
+        raise RuntimeError("Dedup decisions have missing or repeated Brief IDs")
+    kept = []
+    comparison_by_id = {entry["id"]: entry for entry in comparison}
+    for item in items:
+        entry = by_id[item["id"]]
+        if entry.get("action") not in {"retain", "skip", "review"} or not entry.get("reason"):
+            raise RuntimeError("Invalid dedup decision")
+        if item["id"] in comparison_by_id[item["id"]]["exact_ids"]:
+            entry["action"] = "review"
+            entry["reason"] = "ID 已存在，需检查并更新原 Brief。"
+        elif entry["action"] == "retain" and not set(
+            comparison_by_id[item["id"]]["exact_ids"]
+        ).issubset(set(entry["related_ids"])):
+            entry["action"] = "review"
+            entry["reason"] = "共享来源的历史 Brief 尚未逐项比较。"
+        if entry["action"] == "retain":
+            kept.append(item)
+        elif entry["action"] == "review":
+            batch["needs_verification"].append(
+                f"{item['title']}（{item['id']}）：去重待复核：{entry['reason']}"
+            )
+    batch["retention_ready"] = kept
+    batch["task_note"]["no_item_qualified"] = not kept
+    batch["task_note"]["deduplication_basis"] = (
+        "Compared each proposed Brief with indexed retained Briefs by ID, normalized source URL, "
+        "title and facts; ambiguous updates require review."
+    )
+    return batch
+
+
+def discover_content(slot: str, end: datetime) -> dict:
     """Run the content skill in an isolated, read-only temporary workspace."""
     start = end - timedelta(hours=24)
     focus = end - timedelta(hours=12)
     with tempfile.TemporaryDirectory(prefix="less-digest-") as directory:
         workspace = Path(directory)
-        _guidance_workspace(workspace, existing)
+        _guidance_workspace(workspace)
         output = workspace / "batch.json"
         prompt = (
             "使用本目录的 $less-content Skill 执行一次中文 AI 内容发现任务。"
             "先阅读 .agents/skills/less-content/SKILL.md、其 references 和 docs/current 中的规范。"
-            "从 existing-briefs.json 读取完整已保留 Brief，按语义、ID 和来源链接去重。"
+            "先生成本轮候选；宿主稍后从全库索引召回相关旧 Brief 并单独进行去重判断。"
             f"本轮为{SLOT_NAMES[slot]}，时区 {settings().timezone}。"
             f"重点观察 {focus.isoformat()} 至 {end.isoformat()}，"
             f"同时回看 {start.isoformat()} 至 {end.isoformat()} 以发现迟到内容。"
@@ -141,26 +196,7 @@ def discover_content(slot: str, end: datetime, existing: list[dict]) -> dict:
             f"timezone 为 {settings().timezone}，time_basis 为 first_primary_publication，"
             "scan_scope 为 broad，并真实记录所检查的来源。"
         )
-        command = [
-            "codex", "--search", "--ask-for-approval", "never", "exec",
-            "--ignore-user-config", "--sandbox", "read-only", "--ephemeral",
-            "--skip-git-repo-check", "--cd", str(workspace),
-            "--output-schema", str(SCHEMA), "--output-last-message", str(output), prompt,
-        ]
-        try:
-            result = subprocess.run(
-                command, capture_output=True, text=True, timeout=3600,
-                env=_codex_environment(), stdin=subprocess.DEVNULL, check=False,
-            )
-        except (OSError, subprocess.TimeoutExpired) as exc:
-            raise RuntimeError(f"Codex content task could not complete: {exc}") from exc
-        if result.returncode != 0:
-            detail = result.stderr.strip()[-1600:]
-            raise RuntimeError(f"Codex content task failed (exit {result.returncode}): {detail}")
-        try:
-            batch = json.loads(output.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError) as exc:
-            raise RuntimeError("Codex did not return a valid content batch") from exc
+        batch = _run_codex(workspace, output, SCHEMA, prompt, search=True)
         if not isinstance(batch, dict) or not isinstance(batch.get("task_note"), dict):
             raise RuntimeError("Codex returned an invalid content batch")
         note = batch["task_note"]
@@ -173,12 +209,12 @@ def discover_content(slot: str, end: datetime, existing: list[dict]) -> dict:
         }
         if any(note.get(key) != value for key, value in expected.items()):
             raise RuntimeError("Codex returned a batch for the wrong search window")
-        remove_exact_duplicates(batch, existing)
+        review_duplicates(batch, workspace)
         batch_file = workspace / "checked-batch.json"
         batch_file.write_text(json.dumps(batch, ensure_ascii=False), encoding="utf-8")
         checked = subprocess.run(
-            [sys.executable, str(CHECKER), str(batch_file), "--existing-briefs",
-             str(workspace / "existing-briefs.json"), "--allow-date-only-overlap"],
+            [sys.executable, str(CHECKER), str(batch_file), "--host-checked",
+             "--allow-date-only-overlap"],
             capture_output=True, text=True, timeout=30, check=False,
         )
         if checked.returncode != 0:
@@ -203,21 +239,16 @@ def save_batch(slot: str, due: datetime, batch: dict) -> list[dict]:
         run = db.get(DigestRun, (due.date().isoformat(), slot))
         if run is None or run.status != "running":
             raise RuntimeError("Digest run was not claimed")
-        current = db.scalars(select(Brief).options(*load_options())).unique().all()
-        ids = {brief.id for brief in current}
-        urls = {url_key(link.source.url) for brief in current for link in brief.source_links}
         saved_ids = []
         for raw in batch["retention_ready"]:
             body = BriefCreate.model_validate(raw)
-            keys = [url_key(source.url) for source in body.sources]
-            if body.id in ids or any(key in urls for key in keys):
+            matches = exact_ids(db, body.id, [source.url for source in body.sources])
+            if body.id in matches:
                 continue
             brief = Brief(id=body.id, created_at=utc_now())
             db.add(brief)
             replace_content(db, brief, body)
             saved_ids.append(body.id)
-            ids.add(body.id)
-            urls.update(keys)
         run.brief_ids_json = json.dumps(saved_ids)
         run.status = "saved"
         views = [brief_view(get_brief(db, brief_id)) for brief_id in saved_ids]
@@ -245,7 +276,8 @@ def mail_settings() -> None:
         raise RuntimeError("SMTP password must be configured for the SMTP user")
 
 
-def render_digest(slot: str, end: datetime, briefs: list[dict]) -> tuple[str, str]:
+def render_digest(slot: str, end: datetime, briefs: list[dict],
+                  review_notes: list[str] | None = None) -> tuple[str, str]:
     heading = f"Less {SLOT_NAMES[slot]}简报 · {end.date().isoformat()}"
     intro = "本轮没有值得保留的新内容。" if not briefs else f"本轮保留 {len(briefs)} 条 Brief。"
     lines = [heading, intro]
@@ -269,10 +301,16 @@ def render_digest(slot: str, end: datetime, briefs: list[dict]) -> tuple[str, st
                 f"{escape(source_label)}</a></li>"
             )
         parts.append("</ul></section>")
+    if review_notes:
+        lines.extend(["", "去重待复核：", *[f"- {note}" for note in review_notes]])
+        parts.append("<section><h2>去重待复核</h2><ul>")
+        parts.extend(f"<li>{escape(note)}</li>" for note in review_notes)
+        parts.append("</ul></section>")
     return "\n".join(lines) + "\n", "<!doctype html><html><meta charset='utf-8'><body>" + "".join(parts) + "</body></html>"
 
 
-def build_email(slot: str, due: datetime, briefs: list[dict], failure: bool = False) -> EmailMessage:
+def build_email(slot: str, due: datetime, briefs: list[dict], failure: bool = False,
+                review_notes: list[str] | None = None) -> EmailMessage:
     config = settings()
     message = EmailMessage()
     message["From"] = formataddr(("Less", config.mail_from))
@@ -286,7 +324,7 @@ def build_email(slot: str, due: datetime, briefs: list[dict], failure: bool = Fa
         plain = "本轮内容任务未完成。请查看 Less 本地日志；这不是‘没有新内容’。\n"
         html = f"<html><body><h1>{escape(message['Subject'])}</h1><p>{escape(plain)}</p></body></html>"
     else:
-        plain, html = render_digest(slot, due, briefs)
+        plain, html = render_digest(slot, due, briefs, review_notes)
     message.set_content(plain)
     message.add_alternative(html, subtype="html")
     return message
@@ -329,11 +367,12 @@ def run_slot(slot: str, due: datetime, stopping: threading.Event | None = None) 
     saved = False
     try:
         mail_settings()  # Avoid an expensive Codex run if delivery cannot work.
-        existing = all_briefs()
-        batch = discover_content(slot, due, existing)
+        batch = discover_content(slot, due)
         briefs = save_batch(slot, due, batch)
         saved = True
-        send_email(build_email(slot, due, briefs))
+        review_notes = [note for note in batch.get("needs_verification", [])
+                        if "去重待复核：" in note]
+        send_email(build_email(slot, due, briefs, review_notes=review_notes))
         mark_run(slot, due, "sent", email_sent=True)
         print(f"Less {slot} {due.date()}: saved {len(briefs)}, email sent", flush=True)
     except Exception as exc:
@@ -356,8 +395,10 @@ def run_slot(slot: str, due: datetime, stopping: threading.Event | None = None) 
 def preview_digest(slot: str) -> None:
     init_db()
     now = datetime.now(ZoneInfo(settings().timezone))
-    batch = discover_content(slot, now, all_briefs())
-    plain, _ = render_digest(slot, now, batch["retention_ready"])
+    batch = discover_content(slot, now)
+    review_notes = [note for note in batch.get("needs_verification", [])
+                    if "去重待复核：" in note]
+    plain, _ = render_digest(slot, now, batch["retention_ready"], review_notes)
     print(plain)
     print("预览完成：未入库，未发送邮件。", file=sys.stderr)
 

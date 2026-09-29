@@ -13,7 +13,7 @@ from sqlalchemy.orm import selectinload
 
 from less.config import settings
 from less.db import Session, init_db
-from less.models import Brief, BriefSource, BriefTopic, Source, Topic
+from less.models import Brief, BriefSource, BriefTopic, Source, SourceKey, Topic
 
 
 def utc_now() -> str:
@@ -201,6 +201,11 @@ def replace_content(db, brief: Brief, body: BriefFields) -> None:
             stored.name = source.name
             stored.type = source.type
             stored.published_at = source.published_at
+        db.flush()
+        if db.get(SourceKey, stored.id) is None:
+            from less.dedup import url_key
+
+            db.add(SourceKey(source_id=stored.id, key=url_key(source.url)))
         brief.source_links.append(
             BriefSource(position=position, primary=source.primary, source=stored)
         )

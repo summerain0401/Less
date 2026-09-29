@@ -77,6 +77,7 @@ def check(
     existing: object | None,
     dedup_unavailable: bool,
     allow_date_only_overlap: bool = False,
+    host_checked: bool = False,
 ) -> list[str]:
     errors: list[str] = []
     if not isinstance(batch, dict):
@@ -119,7 +120,7 @@ def check(
 
     known_ids: set[str] = set()
     known_urls: set[str] = set()
-    if not dedup_unavailable:
+    if not dedup_unavailable and not host_checked:
         if not isinstance(existing, list):
             errors.append("existing briefs: expected the complete JSON list from GET /api/briefs")
         else:
@@ -146,7 +147,7 @@ def check(
         known_ids.add(brief.id)
         for source in brief.sources:
             key = url_key(source.url)
-            if key in known_urls:
+            if key in known_urls and not host_checked:
                 errors.append(f"{label}: duplicate source link {source.url}")
             known_urls.add(key)
 
@@ -178,6 +179,8 @@ def main() -> int:
     parser.add_argument("batch", type=Path)
     dedup = parser.add_mutually_exclusive_group(required=True)
     dedup.add_argument("--existing-briefs", type=Path)
+    dedup.add_argument("--host-checked", action="store_true",
+                       help="The host already retrieved and reviewed indexed historical matches")
     dedup.add_argument("--dedup-unavailable", action="store_true")
     parser.add_argument(
         "--allow-date-only-overlap",
@@ -191,12 +194,14 @@ def main() -> int:
     except (OSError, json.JSONDecodeError) as exc:
         print(f"Input error: {exc}", file=sys.stderr)
         return 2
-    errors = check(batch, existing, args.dedup_unavailable, args.allow_date_only_overlap)
+    errors = check(batch, existing, args.dedup_unavailable, args.allow_date_only_overlap,
+                   args.host_checked)
     if errors:
         for error in errors:
             print(f"ERROR: {error}", file=sys.stderr)
         return 1
-    print(f"OK: {len(batch['retention_ready'])} retention-ready Brief(s); dedup {'unavailable' if args.dedup_unavailable else 'checked'}")
+    mode = "unavailable" if args.dedup_unavailable else "host-checked" if args.host_checked else "checked"
+    print(f"OK: {len(batch['retention_ready'])} retention-ready Brief(s); dedup {mode}")
     return 0
 
 

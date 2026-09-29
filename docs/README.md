@@ -4,13 +4,14 @@
 
 ## 当前规范
 
-按以下顺序阅读，后续产品、编辑与开发讨论以这三份文档和用户最新明确决策为依据：
+按以下顺序阅读。前三份是当前产品与内容规范；去重设计记录已确定的演进方向和后续实施要点。后续讨论以当前规范和用户最新明确决策为依据：
 
 | 文档 | 职责 |
 | --- | --- |
 | [产品原则](current/00-less-principles.md) | 品牌、价值判断与长期原则 |
 | [轻量架构](current/01-less-lite-architecture.md) | 软件边界、Brief / Topic / Source 与最小阅读闭环 |
 | [Content Skill](current/02-content-skill.md) | 内容发现、筛选、核验、提炼与 Brief 输出约定 |
+| [Brief 去重设计](current/03-brief-deduplication.md) | 全库索引与候选比较的演进方案、当前实现及验收重点 |
 
 内容获取由 Content Skill / Agent 完成；软件负责保存、组织和呈现值得留下的内容。优先跑通 Brief 保留、Today 阅读及原始来源访问，其他能力按真实需求增加。
 

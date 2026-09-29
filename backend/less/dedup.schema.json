@@ -1,0 +1,21 @@
+{
+  "type": "object",
+  "properties": {
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string"},
+          "action": {"enum": ["retain", "skip", "review"]},
+          "reason": {"type": "string"},
+          "related_ids": {"type": "array", "items": {"type": "string"}}
+        },
+        "required": ["id", "action", "reason", "related_ids"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["decisions"],
+  "additionalProperties": false
+}

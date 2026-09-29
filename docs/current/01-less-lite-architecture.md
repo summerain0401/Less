@@ -32,6 +32,8 @@ Less 由内容能力与软件产品两部分构成。内容能力交付标准化
 
 负责搜索、阅读、价值判断、来源核验、去重与提炼。可调用现有搜索、浏览器、RSS、仓库接口或正文提取工具，按任务需要选择获取方式。
 
+随着 Brief 积累，自动简报通过全库索引召回少量相关旧 Brief 后再判断实质增量；实现与后续优化见 [Brief 去重设计](03-brief-deduplication.md)。
+
 编辑规则放在 Skill 中。观察范围与来源角色沿用原产品蓝图的 Coverage Map / Source Map，见 `02-content-skill.md`；来源列表保持轻量配置，发现与筛选过程可在一次任务内完成，不默认持久化为候选库、事件库或审核队列。
 
 内容获取不再产品化为完整采集系统。必要的小工具可以复用或编写，但不以此重建 Collector、Normalize、Event、Evidence、Value Gate、Quality Gate 的完整链路。
