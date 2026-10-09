@@ -6,7 +6,7 @@ This list retains the concrete nodes from the original [Source Registry](../../.
 
 - `primary`: an organization publishing its own releases, research, documentation, or repository changes.
 - `people`: a person's first-hand thinking, experience, or long-form analysis within a specific area.
-- `builders`: implementation notes, engineering practice, reproducible methods, and failure reports.
+- `builders`: first-hand application workflows, reproducible methods, engineering practice, and failure reports.
 - `intelligence`: professional reporting, research, interviews, or independent evaluation that adds context or challenges claims.
 - `discovery`: a lead surface; follow a lead to the concrete original page before using it in a Brief.
 
@@ -49,6 +49,28 @@ A person's blog and social account are one editorial node when they serve the sa
 | `langgraph-releases` | [LangGraph Releases](https://github.com/langchain-ai/langgraph/releases) | `primary` | Agents, Orchestration, Developer Tools | Release record for the project; do not infer production benefit from a feature alone. |
 | `ollama-releases` | [Ollama Releases](https://github.com/ollama/ollama/releases) | `primary` | Local Models, Inference, Developer Tools | Release record for local model tooling; filter minor fixes unless materially useful. |
 
+## Applications, work, and original views
+
+These complement the engineering sources for general knowledge workers. Look for writing, research, office work, learning, creative practice, and team workflows. Case studies, authored essays, and interviews can support their own observed experience or expressed views; they do not establish universal benefits.
+
+| id | name and entry | role | topics | use and bias note |
+| --- | --- | --- | --- | --- |
+| `one-useful-thing` | [One Useful Thing / Ethan Mollick](https://www.oneusefulthing.org/) | `people` | Work, Learning, Applications, Voices | Author's experiments and views, not an independent product audit; preserve disclosed commercial relationships or promotions in the concrete article. Distinguish linked research from experience and predictions. Open the dated article; inaccessible or subscriber-only text remains a lead. |
+| `microsoft-worklab` | [Microsoft WorkLab](https://www.microsoft.com/en-us/worklab) | `intelligence` | Work, Adoption, Productivity, Voices | Microsoft-funded research, interviews, and practical advice; preserve survey/sample limits and distinguish product promotion from independent evidence. Open the concrete report or interview; a landing page or inaccessible full record is only a lead. |
+
+## Chinese ecosystem, practice, and interviews
+
+For broad scans, use Chinese queries as well as English queries. Include original Chinese experience, Chinese teams, local products, and local adoption; overseas news translated into Chinese alone is insufficient. Combine these entries with DeepSeek and Qwen above and expand to other relevant original sources. A language community is not a country filter: Chinese-language authors outside China can also add useful perspectives.
+
+| id | name and entry | role | topics | use and bias note |
+| --- | --- | --- | --- | --- |
+| `sspai-practice` | [少数派](https://sspai.com/) | `builders` | Applications, Writing, Research, Learning, Creative Work | Named authors' practical experience; verify the author, steps, version, limits, and sponsorship. Community articles vary in quality; headline recommendations or paid previews alone are not sufficient. |
+| `latepost-interviews` | [晚点聊 / LateTalk](https://podcast.latepost.com/) | `intelligence` | Chinese AI, Products, Adoption, Industry, Voices | Original interviews and industry analysis; guests can have employer/investor interests. Read or listen to the relevant full record, or obtain a reliable transcript; show notes alone are leads. |
+| `silicon-valley-101` | [硅谷101](https://sv101.fireside.fm/) | `intelligence` | Applications, Industry, Work, Society, Voices | Chinese-language original interviews with practitioners; separate host/guest claims and predictions, and check disclosed sponsorship and employer/investor interests. Audio or video must be accessible with verifiable context or a reliable transcript; summaries alone cannot substantiate a Brief. |
+| `feishu-practice` | [飞书客户与实践案例](https://www.feishu.cn/customers) | `builders` | Office Work, Team Workflows, Adoption, Applications | Supplier-selected customer cases; attribute performance and efficiency claims to the vendor or named customer, keeping conditions and measured scope. Only AI-relevant cases qualify. Index pages may need following to a concrete dated case; no date means no assumption of recency. |
+| `kimi-applications` | [Kimi 教程](https://www.kimi.com/academy/) · [帮助与产品动态](https://www.kimi.com/help) | `primary` | Chinese AI, Research, Documents, Slides, Applications | First-party application guides and product changes; separate demonstrated workflows from effectiveness claims. Open the concrete tutorial or announcement and establish its original date; undated help pages do not prove a new release. |
+| `tencent-ima` | [腾讯 ima](https://ima.qq.com/) | `primary` | Chinese AI, Knowledge Work, Research, Writing, Applications | Product/help surface for the vendor's knowledge-work tool; follow to a concrete dated announcement or help record. Login-only knowledge bases and undated pages remain discovery leads, and vendor benefits require attribution. |
+
 ## People, intelligence, and discovery
 
 | id | name and entry | role | topics | use and bias note |
@@ -79,7 +101,7 @@ A person's blog and social account are one editorial node when they serve the sa
 Apply these rules after selecting topic-relevant entries:
 
 1. A user-required source takes precedence, but never bypasses verification.
-2. For a broad scan, consider relevant Frontier, Builders, and Voices material across multiple organizations and roles; use an `intelligence` or `discovery` path when it has relevant material.
+2. For a broad scan, separately search application practice, substantive views/interviews, and important capability changes with both Chinese and English queries. Check relevant sources in both communities across organizations and roles; record actual sources checked and coverage/access gaps in `task_note`, without language or Brief quotas.
 3. For a narrow product task, the concrete official changelog, release, documentation, paper, or repository page is more useful than a publisher homepage.
 4. If a discovery entry surfaces a claim, follow it to the original source. Do not use a search result, category page, feed item, or discussion thread as a substitute for the concrete evidence page.
 5. Expand beyond this list when it lacks a relevant actor, geography, topic, opposing view, or direct source. Record material expansions in `task_note`.

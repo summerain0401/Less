@@ -21,13 +21,17 @@ For rolling windows such as “past 48 hours,” record the exact start and end 
 
 ## Source strategy
 
+The default reader is a general knowledge worker. Seek useful changes in writing, research, office work, learning, creative work, and team workflows, alongside important AI developments. Explain technical developments through their concrete effects on readers; routine engineering updates have no automatic priority.
+
 When the task requires discovery, use the Coverage Map and Source Map in the [content method](../../../docs/current/02-content-skill.md), then read [the preferred source list](references/preferred-sources.md) before searching. Use this order:
 
 1. Check sources explicitly required by the user.
 2. Select a small, topic-relevant subset of the preferred sources.
 3. Expand beyond the list when coverage is missing, an important claim needs independent verification, or a credible lead points to another original source.
 
-The list is a search starting point, not an allowlist, a completeness promise, or a trust score. A preferred publisher's page still needs the same claim-level verification as any other source. For a broad daily scan, consider relevant Frontier, Builders, Voices, and cross-event Signals material across multiple organizations and source roles. Include intelligence or discovery routes when relevant. Do not visit every listed source merely to satisfy a quota.
+The list is a search starting point, not an allowlist, a completeness promise, or a trust score. A preferred publisher's page still needs the same claim-level verification as any other source. For a broad daily scan, separately look for application practice, substantive views/interviews, and important capability changes across Frontier, Builders, Voices, and cross-event Signals. Use both Chinese and English search queries and check relevant sources in both language communities. Chinese coverage includes Chinese teams, local products, and original Chinese experience or analysis; Chinese translations of overseas announcements alone do not cover it. A focused task follows its requested language and topic scope. Do not visit every listed source or retain content merely to satisfy a quota.
+
+For practical content, establish the problem, method, observed result, prerequisites, and limits. For a view, establish who argues what, the reasoning or evidence, and the context or limits. The fact that an author holds a view can be verified without endorsing the prediction. For interviews and podcasts, obtain the full relevant original record or a reliable transcript; episode titles and promotional summaries are leads only. Attribute vendor case-study results to the vendor or named customer.
 
 Selected social accounts can reveal first-hand views, direct experience, or early product clues. Open the concrete post, verify its author, date, wording, and thread context, then follow any cited documentation or evidence. A person's own view can be primary for that view; a repost, teaser, or claimed product effect does not establish that the product shipped or the effect is real. Treat inaccessible posts as leads only, and deduplicate the same claim across posts, blogs, and announcements.
 
@@ -46,7 +50,7 @@ Read [the output contract](references/output-contract.md) before delivering. Ret
 
 - `retention_ready`: only high- or medium-confidence Brief JSON objects that pass the contract.
 - `needs_verification`: low-confidence leads as readable notes, never disguised as saveable Brief JSON.
-- `task_note`: the actual search range, relevant Coverage considered, preferred sources checked, any expanded sources used, access limitations, deduplication basis, and whether no item qualified.
+- `task_note`: the actual search range, relevant Coverage considered, preferred sources checked across both language communities, any expanded sources used, access limitations (including language or application/view coverage gaps), deduplication basis, and whether no item qualified. Record what was actually checked, not the entire preferred list.
 
 An empty `retention_ready` list is valid. Never invent a link, date, quote, result, or first-hand experience. Keep stable IDs unchanged when correcting an existing Brief.
 

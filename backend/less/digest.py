@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 import shutil
 import signal
 import smtplib
@@ -178,9 +179,17 @@ def discover_content(slot: str, end: datetime) -> dict:
         _guidance_workspace(workspace)
         output = workspace / "batch.json"
         prompt = (
-            "使用本目录的 $less-content Skill 执行一次中文 AI 内容发现任务。"
+            "使用本目录的 $less-content Skill 执行一次中英文区 AI 内容发现任务，用中文写 Brief。"
             "先阅读 .agents/skills/less-content/SKILL.md、其 references 和 docs/current 中的规范。"
+            "面向广义知识工作者，分别检索应用实践、观点访谈和重要能力变化。"
+            "主动使用中文与英文查询，检查两个语言社区的相关来源；"
+            "中文区须观察中国团队、本土产品与中文原创经验，不能仅用海外新闻的中文转载代替。"
+            "关注写作、研究、办公、学习、创作和团队工作流；技术进展解释对使用者的具体影响。"
+            "应用稿说明问题、做法、观察结果与条件；观点稿说明作者主张、依据和边界，"
+            "明确归属，不把作者预测写成事实或 Less 自己的判断。"
+            "访谈须有完整相关原始记录或可靠文字稿；厂商案例的效果明确归属于厂商或具名客户。"
             "先生成本轮候选；宿主稍后从全库索引召回相关旧 Brief 并单独进行去重判断。"
+            "Brief 正文和 uncertainty 只写内容本身的限制，不写尚待宿主处理的临时流程状态。"
             f"本轮为{SLOT_NAMES[slot]}，时区 {settings().timezone}。"
             f"重点观察 {focus.isoformat()} 至 {end.isoformat()}，"
             f"同时回看 {start.isoformat()} 至 {end.isoformat()} 以发现迟到内容。"
@@ -194,7 +203,9 @@ def discover_content(slot: str, end: datetime) -> dict:
             "输出严格符合给定 JSON Schema。task_note 的 window_start、window_end "
             f"必须分别是 {start.isoformat()} 和 {end.isoformat()}；"
             f"timezone 为 {settings().timezone}，time_basis 为 first_primary_publication，"
-            "scan_scope 为 broad，并真实记录所检查的来源。"
+            "scan_scope 为 broad，在现有 task_note 来源列表中真实记录两种语言社区检查过的来源，"
+            "在 access_limitations 中说明打不开原文、缺少文字稿或某类内容覆盖不足。"
+            "不设语言或内容类型条数配额，不因缺少某类内容而降低价值、时间或核验标准。"
         )
         batch = _run_codex(workspace, output, SCHEMA, prompt, search=True)
         if not isinstance(batch, dict) or not isinstance(batch.get("task_note"), dict):
@@ -276,37 +287,118 @@ def mail_settings() -> None:
         raise RuntimeError("SMTP password must be configured for the SMTP user")
 
 
+MAIL_FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',Arial,sans-serif"
+MAIL_TITLE_FONT = "Georgia,'Songti SC',SimSun,serif"
+MAIL_WRAP = "overflow-wrap:anywhere;word-break:break-word;"
+FAILURE_NOTICE = "本轮内容任务未完成。请查看 Less 本地日志；这不是‘没有新内容’。"
+
+
+def _mail_paragraphs(value: str) -> str:
+    # Paragraph breaks remain paragraphs; single line breaks preserve the author's layout.
+    return "".join(
+        '<p style="margin:0 0 14px;line-height:1.8;">'
+        + escape(paragraph).replace("\n", "<br>") + "</p>"
+        for paragraph in re.split(r"\n\s*\n", value.replace("\r\n", "\n"))
+        if paragraph.strip()
+    )
+
+
+def _mail_block(label: str, value: str, tone: str = "") -> str:
+    decoration = {
+        "why": "border-left:2px solid #9caf91;padding:0 0 0 16px;",
+        "take": "background-color:#edf2e8;padding:16px 18px 2px;",
+        "limit": "color:#6d5e41;",
+    }.get(tone, "")
+    return (
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
+        'style="width:100%;margin:20px 0;table-layout:fixed;"><tr>'
+        f'<td style="font-family:{MAIL_FONT};font-size:17px;{MAIL_WRAP}{decoration}">'
+        '<h3 style="margin:0 0 8px;font-size:13px;font-weight:600;line-height:1.6;'
+        f'color:#657760;">{escape(label)}</h3>{_mail_paragraphs(value)}</td></tr></table>'
+    )
+
+
+def _mail_frame(slot: str, end: datetime, intro: str, content: str,
+                failure: bool = False) -> str:
+    label = "任务失败" if failure else "简报"
+    issue = f"{SLOT_NAMES[slot]}{label} · {end.date().isoformat()}"
+    return (
+        '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width,initial-scale=1">'
+        f'<title>Less {escape(issue)}</title>'
+        '<style>@media screen and (max-width:480px){'
+        '.mail-padding{padding:24px 20px!important;}'
+        '.mail-title{font-size:24px!important;}}</style></head>'
+        '<body style="margin:0;padding:0;background-color:#f7f7f2;color:#222820;">'
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
+        'bgcolor="#f7f7f2" style="width:100%;background-color:#f7f7f2;">'
+        '<tr><td align="center" style="padding:24px 0;">'
+        '<!--[if mso]><table role="presentation" width="640" align="center"><tr><td><![endif]-->'
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
+        'bgcolor="#fdfdf9" style="width:100%;max-width:640px;background-color:#fdfdf9;'
+        'table-layout:fixed;border-top:4px solid #55714f;">'
+        f'<tr><td class="mail-padding" style="padding:32px;font-family:{MAIL_FONT};'
+        f'font-size:17px;line-height:1.8;mso-line-height-rule:at-least;{MAIL_WRAP}">'
+        f'<h1 style="margin:0;font-family:{MAIL_TITLE_FONT};font-size:36px;'
+        'font-weight:400;line-height:1.2;">Less</h1>'
+        '<p style="margin:8px 0 26px;font-size:13px;line-height:1.6;color:#657760;">'
+        'Read less. Know more.</p>'
+        f'<p style="margin:0 0 8px;font-size:13px;color:#657760;">{escape(issue)}</p>'
+        f'<p style="margin:0 0 28px;">{escape(intro)}</p>{content}'
+        '<p style="margin:28px 0 0;padding-top:20px;border-top:1px solid #dde1d6;'
+        'font-size:13px;color:#70786c;line-height:1.8;">'
+        '每条内容保留原始来源与必要限制。</p></td></tr></table>'
+        '<!--[if mso]></td></tr></table><![endif]--></td></tr></table></body></html>'
+    )
+
+
 def render_digest(slot: str, end: datetime, briefs: list[dict],
                   review_notes: list[str] | None = None) -> tuple[str, str]:
     heading = f"Less {SLOT_NAMES[slot]}简报 · {end.date().isoformat()}"
     intro = "本轮没有值得保留的新内容。" if not briefs else f"本轮保留 {len(briefs)} 条 Brief。"
     lines = [heading, intro]
-    parts = [f"<h1>{escape(heading)}</h1>", f"<p>{escape(intro)}</p>"]
+    parts = []
     for index, brief in enumerate(briefs, 1):
         lines.extend(["", f"{index}. {brief['title']}", f"来源日期：{brief['published_at'] or '未知'}"])
-        parts.append(f"<section><h2>{index}. {escape(brief['title'])}</h2>")
-        parts.append(f"<p>来源日期：{escape(brief['published_at'] or '未知')}</p>")
-        for label, key in (("发生了什么", "what_happened"), ("为什么值得关注", "why_it_matters"),
-                           ("Less 怎么看", "our_take"), ("限制与不确定性", "uncertainty")):
+        parts.append(
+            '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
+            'style="width:100%;table-layout:fixed;border-top:1px solid #dde1d6;"><tr>'
+            f'<td style="padding:24px 0 8px;font-family:{MAIL_FONT};font-size:17px;'
+            f'line-height:1.8;color:#222820;{MAIL_WRAP}">'
+            '<p style="margin:0 0 10px;font-size:13px;color:#657760;">'
+            f'{index:02d} / BRIEF</p>'
+            f'<h2 class="mail-title" style="margin:0 0 12px;font-family:{MAIL_TITLE_FONT};'
+            f'font-size:24px;font-weight:600;line-height:1.5;{MAIL_WRAP}">'
+            f'{escape(brief["title"])}</h2>'
+            '<p style="margin:0 0 24px;font-size:13px;color:#70786c;">来源日期：'
+            f'{escape(brief["published_at"] or "未知")}</p>'
+        )
+        for label, key, tone in (("发生了什么", "what_happened", ""),
+                                 ("为什么值得关注", "why_it_matters", "why"),
+                                 ("Less 怎么看", "our_take", "take"),
+                                 ("限制与不确定性", "uncertainty", "limit")):
             if brief.get(key):
                 lines.extend([f"{label}：{brief[key]}"])
-                parts.append(f"<h3>{label}</h3><p>{escape(brief[key]).replace(chr(10), '<br>')}</p>")
+                parts.append(_mail_block(label, brief[key], tone))
         lines.append("来源：")
-        parts.append("<h3>来源</h3><ul>")
+        parts.append(
+            '<h3 style="margin:24px 0 8px;font-size:13px;color:#657760;line-height:1.6;">'
+            '来源</h3><ul style="margin:0 0 16px;padding-left:20px;font-size:13px;line-height:1.8;">'
+        )
         for source in brief["sources"]:
             source_label = f"{source['name']}（{source['published_at'] or '日期未知'}）"
             lines.append(f"- {source_label} {source['url']}")
             parts.append(
-                f'<li><a href="{escape(source["url"], quote=True)}">'
+                '<li style="margin:0 0 8px;">'
+                f'<a href="{escape(source["url"], quote=True)}" '
+                f'style="color:#55714f;text-decoration:underline;{MAIL_WRAP}">'
                 f"{escape(source_label)}</a></li>"
             )
-        parts.append("</ul></section>")
+        parts.append("</ul></td></tr></table>")
     if review_notes:
         lines.extend(["", "去重待复核：", *[f"- {note}" for note in review_notes]])
-        parts.append("<section><h2>去重待复核</h2><ul>")
-        parts.extend(f"<li>{escape(note)}</li>" for note in review_notes)
-        parts.append("</ul></section>")
-    return "\n".join(lines) + "\n", "<!doctype html><html><meta charset='utf-8'><body>" + "".join(parts) + "</body></html>"
+        parts.append(_mail_block("去重待复核", "\n\n".join(review_notes), "limit"))
+    return "\n".join(lines) + "\n", _mail_frame(slot, end, intro, "".join(parts))
 
 
 def build_email(slot: str, due: datetime, briefs: list[dict], failure: bool = False,
@@ -321,8 +413,9 @@ def build_email(slot: str, due: datetime, briefs: list[dict], failure: bool = Fa
     message["Date"] = format_datetime(datetime.now(timezone.utc))
     message["Message-ID"] = make_msgid(domain=domain)
     if failure:
-        plain = "本轮内容任务未完成。请查看 Less 本地日志；这不是‘没有新内容’。\n"
-        html = f"<html><body><h1>{escape(message['Subject'])}</h1><p>{escape(plain)}</p></body></html>"
+        plain = FAILURE_NOTICE + "\n"
+        html = _mail_frame(slot, due, "本轮内容任务未完成。",
+                           _mail_block("任务失败", FAILURE_NOTICE, "limit"), failure=True)
     else:
         plain, html = render_digest(slot, due, briefs, review_notes)
     message.set_content(plain)
