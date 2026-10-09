@@ -1,7 +1,6 @@
 """Twice-daily, local-only content discovery and email delivery."""
 
 import json
-import os
 import re
 import shutil
 import signal
@@ -22,6 +21,7 @@ from zoneinfo import ZoneInfo
 
 from sqlalchemy.exc import IntegrityError
 
+from less.agents import initialize_agent, run_content_task
 from less.api import BriefCreate, brief_view, get_brief, replace_content, utc_now
 from less.config import ROOT, settings
 from less.db import Session, init_db
@@ -69,38 +69,6 @@ def _guidance_workspace(target: Path) -> None:
         shutil.copy2(ROOT / "docs/current" / name, docs_target / name)
 
 
-def _codex_environment() -> dict[str, str]:
-    # Do not pass any LESS_ or SMTP credentials to the content-writing process.
-    names = ("HOME", "PATH", "TMPDIR", "LANG", "LC_ALL", "USER", "CODEX_HOME")
-    return {name: os.environ[name] for name in names if name in os.environ}
-
-
-def _run_codex(workspace: Path, output: Path, schema: Path, prompt: str,
-               search: bool = False) -> dict:
-    command = ["codex"]
-    if search:
-        command.append("--search")
-    command.extend([
-        "--ask-for-approval", "never", "exec", "--ignore-user-config", "--sandbox", "read-only",
-        "--ephemeral", "--skip-git-repo-check", "--cd", str(workspace),
-        "--output-schema", str(schema), "--output-last-message", str(output), prompt,
-    ])
-    try:
-        result = subprocess.run(
-            command, capture_output=True, text=True, timeout=3600,
-            env=_codex_environment(), stdin=subprocess.DEVNULL, check=False,
-        )
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        raise RuntimeError(f"Codex content task could not complete: {exc}") from exc
-    if result.returncode != 0:
-        raise RuntimeError(f"Codex content task failed (exit {result.returncode}): "
-                           f"{result.stderr.strip()[-1600:]}")
-    try:
-        return json.loads(output.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise RuntimeError("Codex did not return valid structured output") from exc
-
-
 def review_duplicates(batch: dict, workspace: Path) -> dict:
     items = batch["retention_ready"]
     if not items:
@@ -134,7 +102,7 @@ def review_duplicates(batch: dict, workspace: Path) -> dict:
         "每条给出简短、具体的理由与相关旧 Brief ID。"
         "不得搜索、写文件或修改候选内容；只输出符合 JSON Schema 的 decisions。"
     )
-    decisions = _run_codex(workspace, output, DEDUP_SCHEMA, prompt)
+    decisions = run_content_task(workspace, output, DEDUP_SCHEMA, prompt)
     entries = decisions.get("decisions") if isinstance(decisions, dict) else None
     if not isinstance(entries, list) or len(entries) != len(items):
         raise RuntimeError("Dedup decisions do not cover every candidate")
@@ -179,7 +147,7 @@ def discover_content(slot: str, end: datetime) -> dict:
         _guidance_workspace(workspace)
         output = workspace / "batch.json"
         prompt = (
-            "使用本目录的 $less-content Skill 执行一次中英文区 AI 内容发现任务，用中文写 Brief。"
+            "按本目录的 less-content Skill 执行一次中英文区 AI 内容发现任务，用中文写 Brief。"
             "先阅读 .agents/skills/less-content/SKILL.md、其 references 和 docs/current 中的规范。"
             "面向广义知识工作者，分别检索应用实践、观点访谈和重要能力变化。"
             "主动使用中文与英文查询，检查两个语言社区的相关来源；"
@@ -207,9 +175,9 @@ def discover_content(slot: str, end: datetime) -> dict:
             "在 access_limitations 中说明打不开原文、缺少文字稿或某类内容覆盖不足。"
             "不设语言或内容类型条数配额，不因缺少某类内容而降低价值、时间或核验标准。"
         )
-        batch = _run_codex(workspace, output, SCHEMA, prompt, search=True)
+        batch = run_content_task(workspace, output, SCHEMA, prompt, search=True)
         if not isinstance(batch, dict) or not isinstance(batch.get("task_note"), dict):
-            raise RuntimeError("Codex returned an invalid content batch")
+            raise RuntimeError("Content agent returned an invalid content batch")
         note = batch["task_note"]
         expected = {
             "window_start": start.isoformat(),
@@ -219,7 +187,7 @@ def discover_content(slot: str, end: datetime) -> dict:
             "scan_scope": "broad",
         }
         if any(note.get(key) != value for key, value in expected.items()):
-            raise RuntimeError("Codex returned a batch for the wrong search window")
+            raise RuntimeError("Content agent returned a batch for the wrong search window")
         review_duplicates(batch, workspace)
         batch_file = workspace / "checked-batch.json"
         batch_file.write_text(json.dumps(batch, ensure_ascii=False), encoding="utf-8")
@@ -459,7 +427,7 @@ def run_slot(slot: str, due: datetime, stopping: threading.Event | None = None) 
         return False
     saved = False
     try:
-        mail_settings()  # Avoid an expensive Codex run if delivery cannot work.
+        mail_settings()  # Avoid an expensive content task if delivery cannot work.
         batch = discover_content(slot, due)
         briefs = save_batch(slot, due, batch)
         saved = True
@@ -486,6 +454,7 @@ def run_slot(slot: str, due: datetime, stopping: threading.Event | None = None) 
 
 
 def preview_digest(slot: str) -> None:
+    initialize_agent()
     init_db()
     now = datetime.now(ZoneInfo(settings().timezone))
     batch = discover_content(slot, now)
@@ -497,6 +466,7 @@ def preview_digest(slot: str) -> None:
 
 
 def run_scheduler() -> None:
+    initialize_agent()
     init_db()
     stop = threading.Event()
     signal.signal(signal.SIGTERM, lambda *_: stop.set())

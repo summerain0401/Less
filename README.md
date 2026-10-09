@@ -28,6 +28,34 @@ make dev
 
 如需覆盖数据库位置或 Today 时区，复制 `.env.example` 为 `.env` 后修改。SQLite URL 使用绝对路径时形如 `sqlite:////absolute/path/to/less.db`。
 
+### Codex 与 Antigravity
+
+在 Codex 或 Antigravity 的 Agent／内置终端中执行 `make dev`，Less 会根据启动进程的祖先链识别平台，并固定本次内容任务使用的工具：Codex 调用 `codex`，Antigravity 调用 `agy`。启动时会显示所选工具。两种平台共用数据库、网页和内容规范；内容生成及历史去重使用同一平台，切换平台后需要重新启动 Less。
+
+`LESS_AGENT_PROVIDER` 默认为 `auto`。从普通终端启动、祖先进程不可读取或环境无法识别时，需要明确指定：
+
+```bash
+LESS_AGENT_PROVIDER=codex make dev
+LESS_AGENT_PROVIDER=antigravity make dev
+```
+
+显式配置优先于自动识别；也可写入 `.env`，但希望随启动平台切换时应保持 `auto`。识别失败或对应 CLI 不在 `PATH` 时，启动会立即报错；登录、权限或调用失败不会自动改用另一个平台。只启动 API／前端不涉及内容任务时无需选择 Agent。
+
+Codex 需要安装并登录 Codex CLI。Antigravity 需要安装支持 `-p`、`--output-format json`、`--json-schema`、`--print-timeout` 和 `--sandbox` 的 Antigravity CLI；本机验证参数的版本为 `agy 1.2.13`。先在交互终端运行 `agy` 完成登录，再运行下方预览验收。IDE 登录和 CLI 的缓存登录是否可用，以预览结果为准。
+
+Antigravity 的非交互任务遵循 CLI 权限设置；退出码为 0 也可能发生工具被拒绝的情况，Less 会拒收识别到的权限拒绝输出。请根据 CLI 的诊断配置搜索工具和原文读取权限。宽泛发现需要动态扩展来源，原文读取可在 `~/.gemini/antigravity-cli/settings.json` 的现有 `permissions.allow` 中加入 `read_url(*)`；这是全局网页读取授权，如希望限制来源可改用具体域名，但未授权来源可能无法核验。保留现有其他配置，不开启全部工具自动批准。参见 [Antigravity 非交互调用](https://antigravity.google/docs/cli/headless/)和[权限文档](https://www.antigravity.google/docs/permissions?tab=cli)。
+
+两种工具都在仅包含内容规范和任务输入的临时目录中执行，不传递 `LESS_` 配置或 SMTP 凭据。Codex 使用只读 sandbox；Antigravity 使用其 `--sandbox` 并在提示词中禁止写文件，两者的权限机制不同，Antigravity 的 sandbox 不等同于 Codex 的只读模式。
+
+分别检查真实搜索、内容核验、历史去重与邮件预览：
+
+```bash
+LESS_AGENT_PROVIDER=codex .venv/bin/less preview --slot morning
+LESS_AGENT_PROVIDER=antigravity .venv/bin/less preview --slot morning
+```
+
+预览不入库、不发送邮件、不占用正式调度时段，但会使用对应账号的推理额度。
+
 ## 验证
 
 ```bash
@@ -38,7 +66,7 @@ make test
 
 ## Content Skill
 
-仓库级 Skill 位于 `.agents/skills/less-content/`。它可以被 Codex 自动发现，也可以显式使用 `$less-content`。Skill 只输出草稿；手动运行时请在管理页检查并确认保留，已授权的定时任务则由调度程序校验后自动入库。
+仓库级 Skill 位于 `.agents/skills/less-content/`，Codex 和 Antigravity 共用这一份。Codex 可显式使用 `$less-content`；Antigravity 可按名称调用或直接要求阅读 `SKILL.md`。自动任务直接指定规范文件路径。Skill 只输出草稿；手动运行时请在管理页检查并确认保留，已授权的定时任务则由调度程序校验后自动入库。
 
 内容发现采用混合来源策略：先处理任务明确指定的来源，再检查与主题相关的[首选来源清单](.agents/skills/less-content/references/preferred-sources.md)，覆盖不足或需要交叉验证时继续扩展搜索。该清单是版本化的搜索起点，不是白名单，也不会触发自动采集。
 
@@ -48,7 +76,7 @@ make test
 
 `make dev` 启动 API、前端和独立的简报调度进程。项目持续运行时，调度进程按 `LESS_TIMEZONE`（默认 `Asia/Shanghai`）每天 06:00 和 18:00 启动内容任务；电脑休眠、项目停止或错过时段时不会补跑。也可单独运行 `.venv/bin/less scheduler`，但不要与 `make dev` 同时运行两个调度进程。数据库中的每日期/时段唯一记录会阻止重复执行。
 
-自动内容任务使用本机已登录的 Codex CLI 及实时网页搜索，按仓库 `less-content` 规范查找、核验并生成结构化 Brief。每轮面向广义知识工作者，使用中英文查询分别寻找应用实践、有依据的观点访谈和重要能力变化；中文区覆盖本土产品、团队及原创经验。按价值选稿，不要求固定条数或语言比例，实际来源与访问缺口记录在 `task_note`。
+自动内容任务使用启动时选定且已登录的 Codex CLI 或 Antigravity CLI 及实时网页搜索，按仓库 `less-content` 规范查找、核验并生成结构化 Brief。每轮面向广义知识工作者，使用中英文查询分别寻找应用实践、有依据的观点访谈和重要能力变化；中文区覆盖本土产品、团队及原创经验。按价值选稿，不要求固定条数或语言比例，实际来源与访问缺口记录在 `task_note`。
 
 它重点查看上一 12 小时，并回看最近 24 小时寻找较晚发现的内容；只有日期没有时刻的来源可能在首次核实时收录，邮件只显示来源日期，不推断其具体发布时间。宿主从全库索引召回少量相关旧 Brief，再启动一次去重比较任务；存在歧义的内容不自动保留。高或中等核验把握且通过校验、去重的内容会自动入库；中等把握必须注明限制。没有合格内容也会发送一封简短邮件。邮件是在内容任务完成后发送，可能晚于 06:00 / 18:00。
 
@@ -60,6 +88,6 @@ make test
 | `LESS_SMTP_USERNAME`、`LESS_SMTP_PASSWORD` | SMTP 登录名与应用密码 |
 | `LESS_MAIL_FROM`、`LESS_MAIL_TO` | 发件与收件邮箱地址 |
 
-不要将密码提交到 Git。调度程序不会把这些配置传入 Codex 子进程。SMTP 未配置时不会运行昂贵的内容任务；该轮会记录失败。Codex 登录可用 `.venv/bin/less preview --slot morning` 或 `--slot evening` 检查：命令使用真实内容生成文本邮件预览，不入库、不发送邮件，也不占用正式调度时段。正式邮件的完整 HTML 与纯文本正文由同一渲染逻辑生成。运行结果保存在 SQLite 的 `digest_runs` 表中；内容任务失败时尽可能发送明确的失败通知，SMTP 发送失败会有限重试并留下失败记录。
+不要将密码提交到 Git。调度程序不会把这些配置传入内容 Agent 子进程。SMTP 未配置时不会运行昂贵的内容任务；该轮会记录失败。对应 CLI 的登录及任务能力可用 `.venv/bin/less preview --slot morning` 或 `--slot evening` 检查：命令使用真实内容生成文本邮件预览，不入库、不发送邮件，也不占用正式调度时段。正式邮件的完整 HTML 与纯文本正文由同一渲染逻辑生成。运行结果保存在 SQLite 的 `digest_runs` 表中；内容任务失败时尽可能发送明确的失败通知，SMTP 发送失败会有限重试并留下失败记录。
 
 HTML 邮件采用暖白与橄榄绿的单栏刊物版式，最大宽度 640px，手机与桌面使用不同留白。正文保留全文和段落，来源、Less 判断及限制分别呈现；正常、空内容、失败与去重待复核邮件共用模板。布局使用表格与内联样式，无需外部字体或图片；不支持媒体查询的邮箱仍能按顺序阅读全文，但留白可能不同。浏览器预览通过不代表全部邮箱客户端兼容。

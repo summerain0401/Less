@@ -7,11 +7,18 @@ import subprocess
 import time
 from pathlib import Path
 
+from less.agents import initialize_agent
+
 ROOT = Path(__file__).resolve().parents[1]
 BIN = ROOT / ".venv/bin"
 
 
 def main():
+    try:
+        agent = initialize_agent()
+    except RuntimeError as exc:
+        raise SystemExit(str(exc)) from exc
+    child_env = dict(os.environ, LESS_AGENT_PROVIDER=agent.provider)
     for port in (8000, 5173):
         with socket.socket() as probe:
             probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -34,7 +41,9 @@ def main():
     signal.signal(signal.SIGTERM, shutdown)
     try:
         for command, cwd in commands:
-            children.append(subprocess.Popen(command, cwd=cwd, start_new_session=True))
+            children.append(subprocess.Popen(
+                command, cwd=cwd, env=child_env, start_new_session=True
+            ))
         print("Less: http://127.0.0.1:5173 — Ctrl+C stops all three processes.", flush=True)
         while all(child.poll() is None for child in children):
             time.sleep(1)

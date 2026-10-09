@@ -14,14 +14,16 @@ def main():
         from less.api import app
 
         print(json.dumps(app.openapi(), ensure_ascii=False, indent=2))
-    elif args.command == "scheduler":
-        from less.digest import run_scheduler
+    else:
+        from less.digest import preview_digest, run_scheduler
 
-        run_scheduler()
-    elif args.command == "preview":
-        from less.digest import preview_digest
-
-        preview_digest(args.slot)
+        try:
+            if args.command == "scheduler":
+                run_scheduler()
+            else:
+                preview_digest(args.slot)
+        except RuntimeError as exc:
+            raise SystemExit(str(exc)) from exc
 
 
 if __name__ == "__main__":

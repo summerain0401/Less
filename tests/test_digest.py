@@ -91,7 +91,7 @@ def test_dedup_review_can_keep_new_progress_with_shared_source(client, monkeypat
         return {"decisions": [{"id": "new", "action": "retain", "reason": "new capability",
                                "related_ids": ["old"]}]}
 
-    monkeypatch.setattr(digest, "_run_codex", decide)
+    monkeypatch.setattr(digest, "run_content_task", decide)
     assert digest.review_duplicates(batch, tmp_path)["retention_ready"] == [new]
     assert url_key(new["sources"][0]["url"]) == url_key(old["sources"][0]["url"])
 
@@ -153,7 +153,7 @@ def test_discovery_compares_indexed_history_before_validation(client, monkeypatc
         return {"decisions": [{"id": "new", "action": "skip",
                                "reason": "same change", "related_ids": ["old"]}]}
 
-    monkeypatch.setattr(digest, "_run_codex", fake_codex)
+    monkeypatch.setattr(digest, "run_content_task", fake_codex)
     result = digest.discover_content("morning", DUE)
     assert calls == [True, False]
     assert result["retention_ready"] == []
@@ -262,16 +262,6 @@ def test_smtp_failure_keeps_saved_brief_and_records_failure(client, monkeypatch)
         assert run.email_sent_at is None
         assert json.loads(run.brief_ids_json) == ["morning-one"]
         assert db.get(Brief, "morning-one") is not None
-
-
-def test_codex_subprocess_does_not_inherit_smtp_secrets(monkeypatch):
-    monkeypatch.setenv("LESS_SMTP_PASSWORD", "secret")
-    monkeypatch.setenv("SMTP_PASSWORD", "secret")
-    monkeypatch.setenv("PATH", "/usr/bin")
-    child = digest._codex_environment()
-    assert child["PATH"] == "/usr/bin"
-    assert "LESS_SMTP_PASSWORD" not in child
-    assert "SMTP_PASSWORD" not in child
 
 
 def test_smtp_retries_transient_failure(monkeypatch):

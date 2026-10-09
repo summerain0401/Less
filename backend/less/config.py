@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 from zoneinfo import ZoneInfo
 
 from pydantic import field_validator
@@ -13,6 +14,7 @@ class Settings(BaseSettings):
 
     database_url: str = f"sqlite:///{ROOT / 'data' / 'less.db'}"
     timezone: str = "Asia/Shanghai"
+    agent_provider: Literal["auto", "codex", "antigravity"] = "auto"
     smtp_host: str = ""
     smtp_port: int = 587
     smtp_username: str = ""
