@@ -27,6 +27,7 @@ from less.config import ROOT, settings
 from less.db import Session, init_db
 from less.dedup import exact_ids, related_briefs
 from less.models import Brief, DigestRun
+from less.runtime import configure_scheduler_logging, log_event, scheduler_lock
 
 SLOTS = {"morning": day_time(6), "evening": day_time(18)}
 SLOT_NAMES = {"morning": "早间", "evening": "晚间"}
@@ -69,8 +70,10 @@ def _guidance_workspace(target: Path) -> None:
         shutil.copy2(ROOT / "docs/current" / name, docs_target / name)
 
 
-def review_duplicates(batch: dict, workspace: Path) -> dict:
+def review_duplicates(batch: dict, workspace: Path,
+                      stopping: threading.Event | None = None) -> dict:
     items = batch["retention_ready"]
+    batch["task_note"]["no_item_qualified"] = not items
     if not items:
         batch["task_note"]["deduplication_basis"] = "No retention-ready Briefs to compare."
         return batch
@@ -102,7 +105,9 @@ def review_duplicates(batch: dict, workspace: Path) -> dict:
         "每条给出简短、具体的理由与相关旧 Brief ID。"
         "不得搜索、写文件或修改候选内容；只输出符合 JSON Schema 的 decisions。"
     )
-    decisions = run_content_task(workspace, output, DEDUP_SCHEMA, prompt)
+    log_event("Less content: comparing candidates with retained Briefs")
+    task_options = {"stopping": stopping} if stopping is not None else {}
+    decisions = run_content_task(workspace, output, DEDUP_SCHEMA, prompt, **task_options)
     entries = decisions.get("decisions") if isinstance(decisions, dict) else None
     if not isinstance(entries, list) or len(entries) != len(items):
         raise RuntimeError("Dedup decisions do not cover every candidate")
@@ -138,7 +143,7 @@ def review_duplicates(batch: dict, workspace: Path) -> dict:
     return batch
 
 
-def discover_content(slot: str, end: datetime) -> dict:
+def discover_content(slot: str, end: datetime, stopping: threading.Event | None = None) -> dict:
     """Run the content skill in an isolated, read-only temporary workspace."""
     start = end - timedelta(hours=24)
     focus = end - timedelta(hours=12)
@@ -166,16 +171,23 @@ def discover_content(slot: str, end: datetime) -> dict:
             "优先原始来源，实际打开具体页面，核对日期、范围和关键主张。"
             "只将 high 或 medium 且符合 Important OR Useful 的内容放入 retention_ready；"
             "medium 必须明确写出 uncertainty；低把握线索写入 needs_verification。"
-            "允许零条。不要调用 Less 写接口、发送邮件或修改任何文件。"
+            "允许零条。只可使用只读文件工具或只读终端命令读取本目录提供的规范与任务输入；"
+            "不得执行与读取这些文件无关的系统命令（如 date），时间窗口已在提示词中明确提供；"
+            "不要调用 Less 写接口、发送邮件或修改任何文件。"
+            "合理控制检索轮次与信息核验深度，确认一手来源的核心事实、日期与限制后即行总结收敛，避免过度深入单条边缘线索或过度漫游；"
             "宿主调度程序将在收到结构化输出后运行批次检查器，你无需写文件执行检查。"
             "输出严格符合给定 JSON Schema。task_note 的 window_start、window_end "
             f"必须分别是 {start.isoformat()} 和 {end.isoformat()}；"
             f"timezone 为 {settings().timezone}，time_basis 为 first_primary_publication，"
             "scan_scope 为 broad，在现有 task_note 来源列表中真实记录两种语言社区检查过的来源，"
+            "preferred_sources_checked 必须非空，只列实际检索或尝试访问过的首选来源；"
+            "即使没有合格内容，也必须保留真实的来源检查记录。"
             "在 access_limitations 中说明打不开原文、缺少文字稿或某类内容覆盖不足。"
             "不设语言或内容类型条数配额，不因缺少某类内容而降低价值、时间或核验标准。"
         )
-        batch = run_content_task(workspace, output, SCHEMA, prompt, search=True)
+        log_event(f"Less {slot} {end.date()}: starting content discovery")
+        task_options = {"stopping": stopping} if stopping is not None else {}
+        batch = run_content_task(workspace, output, SCHEMA, prompt, search=True, **task_options)
         if not isinstance(batch, dict) or not isinstance(batch.get("task_note"), dict):
             raise RuntimeError("Content agent returned an invalid content batch")
         note = batch["task_note"]
@@ -188,7 +200,7 @@ def discover_content(slot: str, end: datetime) -> dict:
         }
         if any(note.get(key) != value for key, value in expected.items()):
             raise RuntimeError("Content agent returned a batch for the wrong search window")
-        review_duplicates(batch, workspace)
+        review_duplicates(batch, workspace, stopping)
         batch_file = workspace / "checked-batch.json"
         batch_file.write_text(json.dumps(batch, ensure_ascii=False), encoding="utf-8")
         checked = subprocess.run(
@@ -245,6 +257,21 @@ def mark_run(slot: str, due: datetime, status: str, error: str | None = None,
         run.finished_at = utc_now()
         if email_sent:
             run.email_sent_at = utc_now()
+
+
+def recover_interrupted_runs() -> int:
+    """Only call while owning the scheduler lock; never retry or resend old slots."""
+    with Session.begin() as db:
+        runs = db.query(DigestRun).filter(DigestRun.status.in_(("running", "saved"))).all()
+        for run in runs:
+            prior = run.status
+            run.status = "interrupted"
+            run.finished_at = utc_now()
+            run.error = (
+                f"Previous scheduler exited with status {prior}; recovered on restart. "
+                "The exact interruption cause is unknown. No automatic retry or email resend."
+            )
+        return len(runs)
 
 
 def mail_settings() -> None:
@@ -425,31 +452,42 @@ def run_slot(slot: str, due: datetime, stopping: threading.Event | None = None) 
     init_db()
     if not claim_run(slot, due):
         return False
+    log_event(f"Less {slot} {due.date()}: started")
     saved = False
     try:
         mail_settings()  # Avoid an expensive content task if delivery cannot work.
-        batch = discover_content(slot, due)
+        batch = (discover_content(slot, due) if stopping is None
+                 else discover_content(slot, due, stopping=stopping))
+        if stopping is not None and stopping.is_set():
+            raise InterruptedError("Scheduler stopped before saving content")
         briefs = save_batch(slot, due, batch)
         saved = True
+        if stopping is not None and stopping.is_set():
+            raise InterruptedError("Scheduler stopped before sending email")
+        log_event(f"Less {slot} {due.date()}: saved {len(briefs)}; sending email")
         review_notes = [note for note in batch.get("needs_verification", [])
                         if "去重待复核：" in note]
         send_email(build_email(slot, due, briefs, review_notes=review_notes))
         mark_run(slot, due, "sent", email_sent=True)
-        print(f"Less {slot} {due.date()}: saved {len(briefs)}, email sent", flush=True)
+        log_event(f"Less {slot} {due.date()}: saved {len(briefs)}, email sent")
     except Exception as exc:
         detail = f"{type(exc).__name__}: {exc}"[:1500]
-        print(f"Less {slot} {due.date()} failed: {detail}", file=sys.stderr, flush=True)
         if stopping is not None and stopping.is_set():
             mark_run(slot, due, "interrupted", error=detail)
+            log_event(f"Less {slot} {due.date()} interrupted: {detail}", error=True)
             return True
+        # Persist the failure before logging or attempting a failure notification.
+        mark_run(slot, due, "failed", error=detail)
+        log_event(f"Less {slot} {due.date()} failed: {detail}", error=True)
         notified = False
         if not saved:
             try:
                 send_email(build_email(slot, due, [], failure=True))
                 notified = True
             except Exception as mail_exc:
-                print(f"Failure notification could not be sent: {mail_exc}", file=sys.stderr)
-        mark_run(slot, due, "failed", error=detail, email_sent=notified)
+                log_event(f"Failure notification could not be sent: {mail_exc}", error=True)
+        if notified:
+            mark_run(slot, due, "failed", error=detail, email_sent=True)
     return True
 
 
@@ -466,18 +504,27 @@ def preview_digest(slot: str) -> None:
 
 
 def run_scheduler() -> None:
+    with scheduler_lock():
+        configure_scheduler_logging()
+        init_db()
+        recovered = recover_interrupted_runs()
+        if recovered:
+            log_event(f"Less scheduler: recovered {recovered} interrupted runs; no backfill")
+        _scheduler_loop()
+
+
+def _scheduler_loop() -> None:
     initialize_agent()
-    init_db()
     stop = threading.Event()
     signal.signal(signal.SIGTERM, lambda *_: stop.set())
     signal.signal(signal.SIGINT, lambda *_: stop.set())
-    print(f"Less scheduler: 06:00 and 18:00 ({settings().timezone})", flush=True)
+    log_event(f"Less scheduler: 06:00 and 18:00 ({settings().timezone})")
     while not stop.is_set():
         slot, due = next_slot_after(datetime.now(timezone.utc))
         seconds = max(0, (due - datetime.now(timezone.utc)).total_seconds())
         if stop.wait(seconds):
             break
         if not slot_is_due(due, datetime.now(timezone.utc)):
-            print(f"Less {slot} {due.date()}: skipped missed slot", flush=True)
+            log_event(f"Less {slot} {due.date()}: skipped missed slot")
             continue
         run_slot(slot, due, stop)

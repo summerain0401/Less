@@ -111,6 +111,11 @@ def test_existing_briefs_are_backfilled_when_indexes_are_added(client):
                  "what_happened": "", "sources": []})]
 
 
+def test_single_unrelated_candidate_normalizes_summary(client, tmp_path):
+    batch = {"retention_ready": [draft()], "task_note": {"no_item_qualified": True}}
+    assert digest.review_duplicates(batch, tmp_path)["task_note"]["no_item_qualified"] is False
+
+
 def test_review_decision_is_included_in_digest_email(client, monkeypatch):
     review = "新能力（candidate）：去重待复核：需要核对旧 Brief 的变化范围"
     monkeypatch.setattr(digest, "mail_settings", lambda: None)

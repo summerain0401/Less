@@ -4,8 +4,10 @@ import json
 import os
 import re
 import shutil
+import signal
 import subprocess
-import sys
+import threading
+import time
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -14,6 +16,7 @@ from typing import Literal
 from jsonschema import ValidationError, validate
 
 from less.config import settings
+from less.runtime import log_event
 
 Provider = Literal["codex", "antigravity"]
 TIMEOUT = 3600
@@ -82,6 +85,48 @@ def agent_environment(provider: Provider) -> dict[str, str]:
     return {name: os.environ[name] for name in names if name in os.environ}
 
 
+def _run_agent(command: list[str], workspace: Path, provider: Provider,
+               stopping: threading.Event | None) -> subprocess.CompletedProcess:
+    options = dict(cwd=workspace, text=True, env=agent_environment(provider),
+                   stdin=subprocess.DEVNULL)
+    if stopping is None:
+        return subprocess.run(command, capture_output=True, timeout=TIMEOUT, check=False, **options)
+    if stopping.is_set():
+        raise InterruptedError("Scheduler is stopping")
+    # Isolate the process group so cancellation also stops shell/tool descendants.
+    with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                          start_new_session=True, **options) as child:
+        deadline = time.monotonic() + TIMEOUT
+        completed = False
+        try:
+            while True:
+                if stopping.is_set():
+                    raise InterruptedError("Scheduler is stopping")
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise subprocess.TimeoutExpired(command, TIMEOUT)
+                try:
+                    stdout, stderr = child.communicate(timeout=min(0.5, remaining))
+                    completed = True
+                    return subprocess.CompletedProcess(command, child.returncode, stdout, stderr)
+                except subprocess.TimeoutExpired:
+                    continue
+        finally:
+            if not completed:
+                try:
+                    os.killpg(child.pid, signal.SIGTERM)
+                except ProcessLookupError:
+                    pass
+                try:
+                    child.communicate(timeout=3)
+                except subprocess.TimeoutExpired:
+                    try:
+                        os.killpg(child.pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                    child.communicate(timeout=3)
+
+
 @dataclass(frozen=True)
 class AgentRunner:
     provider: Provider
@@ -92,7 +137,7 @@ class AgentRunner:
         return "Codex" if self.provider == "codex" else "Antigravity"
 
     def run(self, workspace: Path, output: Path, schema: Path, prompt: str,
-            search: bool = False) -> dict:
+            search: bool = False, stopping: threading.Event | None = None) -> dict:
         if self.provider == "codex":
             command = [self.executable]
             if search:
@@ -111,10 +156,7 @@ class AgentRunner:
                 "--json-schema", str(schema), "--print-timeout", "1h", "--sandbox",
             ]
         try:
-            result = subprocess.run(
-                command, cwd=workspace, capture_output=True, text=True, timeout=TIMEOUT,
-                env=agent_environment(self.provider), stdin=subprocess.DEVNULL, check=False,
-            )
+            result = _run_agent(command, workspace, self.provider, stopping)
         except (OSError, subprocess.TimeoutExpired) as exc:
             raise RuntimeError(f"{self.label} content task could not complete: {exc}") from exc
         if result.returncode != 0:
@@ -159,10 +201,10 @@ def get_agent() -> AgentRunner:
 
 def initialize_agent() -> AgentRunner:
     agent = get_agent()
-    print(f"Less content agent: {agent.label} ({agent.executable})", file=sys.stderr, flush=True)
+    log_event(f"Less content agent: {agent.label} ({agent.executable})", stderr=True)
     return agent
 
 
 def run_content_task(workspace: Path, output: Path, schema: Path, prompt: str,
-                     search: bool = False) -> dict:
-    return get_agent().run(workspace, output, schema, prompt, search)
+                     search: bool = False, stopping: threading.Event | None = None) -> dict:
+    return get_agent().run(workspace, output, schema, prompt, search, stopping)

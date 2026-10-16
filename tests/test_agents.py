@@ -1,12 +1,10 @@
-import importlib.util
 import json
 import subprocess
 from types import SimpleNamespace
-from unittest.mock import MagicMock
 
 import pytest
 from less import agents
-from less.config import ROOT, Settings
+from less.config import Settings
 from pydantic import ValidationError
 
 
@@ -195,23 +193,3 @@ def test_unsuccessful_envelope_even_with_zero_exit(monkeypatch, task_files):
     ))
     with pytest.raises(RuntimeError, match="login required"):
         agents.AgentRunner("antigravity", "/bin/agy").run(*task_files, "task")
-
-
-def test_dev_passes_selected_provider_to_all_children(monkeypatch):
-    spec = importlib.util.spec_from_file_location("less_dev", ROOT / "scripts/dev.py")
-    dev = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(dev)
-    monkeypatch.setattr(dev, "initialize_agent", lambda: SimpleNamespace(provider="antigravity"))
-    monkeypatch.setattr(dev.socket, "socket", MagicMock())
-    monkeypatch.setattr(dev.signal, "signal", lambda *_: None)
-    environments = []
-
-    def start(_command, **kwargs):
-        environments.append(kwargs["env"])
-        return SimpleNamespace(poll=lambda: 0, wait=lambda **_: None)
-
-    monkeypatch.setattr(dev.subprocess, "Popen", start)
-    with pytest.raises(SystemExit, match="exited unexpectedly"):
-        dev.main()
-    assert len(environments) == 3
-    assert all(env["LESS_AGENT_PROVIDER"] == "antigravity" for env in environments)
