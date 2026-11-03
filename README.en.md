@@ -1,6 +1,6 @@
 # Less
 
-[中文](README.md) | [English](README.en.md)
+[English](README.md) | [简体中文](README.zh-CN.md)
 
 **Read less. Know more.**
 
