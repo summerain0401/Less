@@ -1,4 +1,4 @@
-.PHONY: setup start stop status dev test api-types build scheduler-install scheduler-status scheduler-uninstall
+.PHONY: setup start start-web stop status dev test api-types build scheduler-install scheduler-status scheduler-uninstall
 
 setup:
 	uv sync --locked
@@ -6,6 +6,9 @@ setup:
 
 start:
 	.venv/bin/python -m less.services start
+
+start-web:
+	.venv/bin/python -m less.services start --with-web
 
 stop:
 	.venv/bin/python -m less.services stop

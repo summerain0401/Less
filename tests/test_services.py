@@ -39,17 +39,17 @@ def manager(tmp_path, monkeypatch):
 
 
 def test_start_stop_start_controls_all_services_and_is_idempotent(manager):
-    services.start()
+    services.start(with_web=True)
     assert all(state["loaded"] for state in manager.states.values())
     count = len(manager.calls)
-    services.start()
+    services.start(with_web=True)
     assert len(manager.calls) == count
     services.stop()
     assert not any(state["loaded"] for state in manager.states.values())
     disabled = {args[1].rsplit(".", 1)[-1] for args in manager.calls if args[0] == "disable"}
     assert disabled == set(services.COMPONENTS)
     services.stop()
-    services.start()
+    services.start(with_web=True)
     assert all(state["loaded"] for state in manager.states.values())
 
 
@@ -57,7 +57,7 @@ def test_unmanaged_port_conflict_leaves_running_scheduler_untouched(manager, mon
     manager.states["scheduler"] = {"loaded": True, "state": "running", "pid": 123}
     monkeypatch.setattr(services, "port_available", lambda port: port != 8000)
     with pytest.raises(RuntimeError, match="unmanaged"):
-        services.start()
+        services.start(with_web=True)
     assert manager.states["scheduler"]["loaded"]
     assert manager.calls == []
 
@@ -74,7 +74,7 @@ def test_start_failure_rolls_back_only_new_components(manager, monkeypatch):
 
     monkeypatch.setattr(services, "launchctl", fail_frontend)
     with pytest.raises(subprocess.CalledProcessError):
-        services.start()
+        services.start(with_web=True)
     assert manager.states["scheduler"]["loaded"]
     assert not manager.states["api"]["loaded"]
     assert not manager.states["frontend"]["loaded"]
@@ -87,13 +87,13 @@ def test_readiness_failure_disables_new_jobs(manager, monkeypatch):
     clock = iter((0, 21))
     monkeypatch.setattr(services.time, "monotonic", lambda: next(clock))
     with pytest.raises(RuntimeError, match="did not become ready"):
-        services.start()
+        services.start(with_web=True)
     assert not any(state["loaded"] for state in manager.states.values())
 
 
 def test_automatic_port_selection_and_explicit_conflict(manager, monkeypatch):
     monkeypatch.setattr(services, "port_available", lambda port: port in (5174, 8000))
-    services.start()
+    services.start(with_web=True)
     assert services.saved_settings()["frontend_port"] == 5174
     config = plistlib.loads((services.AGENTS_DIR / "local.less.frontend.plist").read_bytes())
     assert config["ProgramArguments"][config["ProgramArguments"].index("--port") + 1] == "5174"
@@ -104,7 +104,7 @@ def test_automatic_port_selection_and_explicit_conflict(manager, monkeypatch):
 def test_missing_node_does_not_enable_partial_services(manager, monkeypatch):
     monkeypatch.setattr(services.shutil, "which", lambda _: None)
     with pytest.raises(RuntimeError, match="Node.js"):
-        services.start()
+        services.start(with_web=True)
     assert manager.calls == []
 
 
@@ -150,7 +150,7 @@ def test_dev_stops_all_services_on_interrupt(monkeypatch):
     monkeypatch.setattr(services.threading, "Event", lambda: event)
     with pytest.raises(KeyboardInterrupt):
         services.dev()
-    start.assert_called_once()
+    start.assert_called_once_with(with_web=True)
     stop.assert_called_once()
 
 
@@ -162,3 +162,42 @@ def test_dev_start_failure_does_not_stop_preexisting_services(monkeypatch):
     with pytest.raises(RuntimeError, match="port busy"):
         services.dev()
     stop.assert_not_called()
+
+
+def test_email_mode_needs_no_node_or_web_ports(manager, monkeypatch, capsys):
+    monkeypatch.setattr(services.shutil, "which", lambda _: None)
+    port_probe = Mock(side_effect=AssertionError("Email mode must not probe web ports"))
+    monkeypatch.setattr(services, "port_available", port_probe)
+    services.start()
+    assert manager.states["scheduler"]["loaded"]
+    assert not manager.states["api"]["loaded"]
+    assert not manager.states["frontend"]["loaded"]
+    assert "email scheduler only" in capsys.readouterr().out
+    services.start()
+    bootstraps = [args for args in manager.calls if args[0] == "bootstrap"]
+    assert len(bootstraps) == 1
+    port_probe.assert_not_called()
+
+
+def test_switch_between_full_and_email_modes_keeps_scheduler_running(manager):
+    services.start(with_web=True)
+    scheduler_pid = manager.states["scheduler"]["pid"]
+    manager.calls.clear()
+    services.start()
+    assert manager.states["scheduler"]["pid"] == scheduler_pid
+    assert not manager.states["api"]["loaded"]
+    assert not manager.states["frontend"]["loaded"]
+    assert not any(args[0] == "bootout" and args[1].endswith("scheduler")
+                   for args in manager.calls)
+    disabled = {args[1].rsplit(".", 1)[-1] for args in manager.calls if args[0] == "disable"}
+    assert disabled == {"api", "frontend"}
+    services.start(with_web=True)
+    assert all(state["loaded"] for state in manager.states.values())
+    services.stop()
+    assert not any(state["loaded"] for state in manager.states.values())
+
+
+def test_email_mode_rejects_frontend_port_without_enabling_jobs(manager):
+    with pytest.raises(RuntimeError, match="--with-web"):
+        services.start(port=5174)
+    assert manager.calls == []

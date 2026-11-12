@@ -1,4 +1,4 @@
-"""Start, stop and inspect the three local Less services together on macOS."""
+"""Manage Less on macOS: email scheduler by default, optional web interface."""
 
 import argparse
 import fcntl
@@ -162,37 +162,45 @@ def pid_exists(pid: int) -> bool:
         return False
 
 
-def start(port: int | None = None) -> None:
+def start(port: int | None = None, *, with_web: bool = False) -> None:
+    if port is not None and not with_web:
+        raise RuntimeError("--port requires --with-web")
+    components = COMPONENTS if with_web else ("scheduler",)
     with control_lock():
         states = {name: service_state(name) for name in COMPONENTS}
         saved = saved_settings()
         preferred = port if port is not None else saved["frontend_port"]
-        if all(healthy(name, preferred) for name in COMPONENTS):
-            print(f"Less is already running: http://127.0.0.1:{preferred}")
-            return
         provider = get_agent().provider
-        if states["frontend"]["loaded"]:
+        if with_web and states["frontend"]["loaded"]:
             if port is not None and port != saved["frontend_port"]:
                 raise RuntimeError("Stop Less before changing its frontend port")
             selected = saved["frontend_port"]
         else:
-            selected = choose_port(preferred, explicit=port is not None)
-        if not states["api"]["loaded"] and not port_available(8000):
+            selected = choose_port(preferred, explicit=port is not None) if with_web else preferred
+        if with_web and not states["api"]["loaded"] and not port_available(8000):
             raise RuntimeError("Port 8000 is occupied by an unmanaged process; stop it before starting Less")
         if not states["scheduler"]["loaded"] and scheduler_is_running():
             raise RuntimeError("A foreground/manual scheduler is active; stop it before starting Less")
         # Validate dependencies and prepare every config before enabling any jobs.
-        configs = {name: agent_config(name, provider, selected) for name in COMPONENTS}
-        for name, state in states.items():
-            if state["loaded"]:
+        configs = {name: agent_config(name, provider, selected) for name in components}
+        for name in components:
+            if states[name]["loaded"]:
                 path = AGENTS_DIR / f"{label(name)}.plist"
                 old = plistlib.loads(path.read_bytes())
                 if old.get("EnvironmentVariables", {}).get("LESS_AGENT_PROVIDER") != provider:
                     raise RuntimeError("Stop Less before switching its content agent provider")
+        if not with_web:
+            for name in ("frontend", "api"):
+                _unload(name)
+        description = (f"Less started (API, frontend, scheduler): http://127.0.0.1:{selected}"
+                       if with_web else "Less started (email scheduler only)")
+        if all(healthy(name, selected) for name in components):
+            print(description.replace("started", "is already running", 1))
+            return
         LOG_DIR.mkdir(parents=True, exist_ok=True)
         new = []
         try:
-            for name in COMPONENTS:
+            for name in components:
                 if states[name]["loaded"]:
                     continue
                 path = AGENTS_DIR / f"{label(name)}.plist"
@@ -204,10 +212,10 @@ def start(port: int | None = None) -> None:
             deadline = time.monotonic() + 20
             ready_checks = 0
             while time.monotonic() < deadline:
-                if all(healthy(name, selected) for name in COMPONENTS):
+                if all(healthy(name, selected) for name in components):
                     ready_checks += 1
                     if ready_checks >= 2:
-                        print(f"Less started (API, frontend, scheduler): http://127.0.0.1:{selected}")
+                        print(description)
                         return
                 else:
                     ready_checks = 0
@@ -258,9 +266,9 @@ def dev() -> None:
     stopping = threading.Event()
     for signum in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
         signal.signal(signum, lambda *_: stopping.set())
-    start()
+    start(with_web=True)
     try:
-        print("Ctrl+C stops all Less services; use `make start` to leave them running.")
+        print("Ctrl+C stops all Less services; use `make start-web` to leave them running.")
         stopping.wait()
     finally:
         stop()
@@ -269,13 +277,17 @@ def dev() -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("action", choices=("start", "stop", "status", "dev"))
-    parser.add_argument("--port", type=int)
+    parser.add_argument("--port", type=int, help="Frontend port (requires --with-web)")
+    parser.add_argument("--with-web", action="store_true",
+                        help="Also start the API and frontend (start action only)")
     args = parser.parse_args()
+    if args.action != "start" and (args.with_web or args.port is not None):
+        parser.error("--with-web and --port apply only to start")
     if sys.platform != "darwin":
         raise SystemExit("Unified service management currently requires macOS")
     try:
         if args.action == "start":
-            start(args.port)
+            start(args.port, with_web=args.with_web)
         elif args.action == "stop":
             stop()
         elif args.action == "dev":

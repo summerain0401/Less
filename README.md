@@ -17,16 +17,18 @@ Less 把内容获取当能力，把理解内容当产品。Content Skill / Agent
 
 ## 本地运行
 
-需要 Python 3.12、uv 和 Node.js。
+邮件模式需要 Python 3.12 和 uv；使用网页时还需要 Node.js。首次安装可运行 `make setup` 安装全部依赖；只用邮件时运行 `uv sync --locked` 即可。
 
 ```bash
 make setup
 make start
 ```
 
-使用 `make start` 统一启动前端、API 和简报调度器，`make stop` 统一关闭，`make status` 检查状态。这三个命令当前面向 macOS。启动完成后命令即返回，服务由系统托管；关闭浏览器、终端或 Codex 不会停止 Less。`make dev` 是前台控制模式，Ctrl+C 或终端正常关闭时会统一停止三个服务。
+`make start` 默认只启动邮件简报调度器，直接读写本地 SQLite 并按时发送邮件，无需前端、API 或 Node.js。它也会关闭并禁用之前启动的前端和 API，防止登录后恢复。需要在网页阅读或管理 Brief 时运行 `make start-web`，启动前端、API 和调度器；已有调度器会保持运行。
 
-默认打开 <http://127.0.0.1:5173>；端口被占用时自动选取 5174–5183 并记住选择，以启动输出或 `make status` 的地址为准。也可用 `.venv/bin/python -m less.services start --port 5174` 指定端口。API 固定使用 8000，遇到其他进程占用时会明确报错，不终止其他项目。首次启动会自动创建 `data/less.db`，不需要 Docker、PostgreSQL、Redis 或外部 API Key。
+`make stop` 统一关闭全部服务，`make status` 检查各服务状态。这些命令当前面向 macOS。启动完成后命令即返回，服务由系统托管；关闭浏览器、终端或 Codex 不会停止 Less。`make dev` 是完整服务的前台控制模式，Ctrl+C 或终端正常关闭时会统一停止三个服务。
+
+网页模式默认地址为 <http://127.0.0.1:5173>；端口被占用时自动选取 5174–5183 并记住选择，以启动输出或 `make status` 的地址为准。也可用 `.venv/bin/python -m less.services start --with-web --port 5174` 指定端口。API 固定使用 8000，遇到其他进程占用时会明确报错，不终止其他项目。首次启动会自动创建 `data/less.db`，不需要 Docker、PostgreSQL、Redis 或外部 API Key。
 
 如需覆盖数据库位置或 Today 时区，复制 `.env.example` 为 `.env` 后修改。SQLite URL 使用绝对路径时形如 `sqlite:////absolute/path/to/less.db`。
 
@@ -76,7 +78,7 @@ make test
 
 ## 早晚自动简报
 
-前端、API 和调度器统一由 `make start` / `make stop` 管理，三个进程分别由 macOS 托管，异常退出时各自重启。显式执行 `make stop` 后，三个服务保持停止，重新登录也不会自行启动；再次 `make start` 才重新启用。Less 处于启动状态时，会在用户登录后恢复运行，电脑仍须保持唤醒、外置项目盘仍须可访问。
+日常使用 `make start` 仅启用邮件调度器；`make start-web` 额外启用前端和 API。启用的进程由 macOS 托管，异常退出时各自重启，并在用户登录后恢复。显式执行 `make stop` 后，全部服务保持停止，重新登录也不会自行启动；再次运行启动命令才重新启用。电脑仍须保持唤醒、外置项目盘仍须可访问。
 
 调度器按 `LESS_TIMEZONE`（默认 `Asia/Shanghai`）每天 06:00 和 18:00 启动内容任务；休眠或服务停止导致错过时段时不会补跑。单实例锁和每日期/时段唯一记录阻止重复执行。停止 Less 时会取消当前内容任务并尽可能记录为 `interrupted`。切换内容平台先 `make stop`，再用新的 `LESS_AGENT_PROVIDER` 执行 `make start`。服务只保存所选平台和必要的进程环境，SMTP 配置仍从仓库 `.env` 读取。
 
